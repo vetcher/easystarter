@@ -6,14 +6,15 @@ import (
 	"os"
 	"os/exec"
 
+	"strings"
+
+	"github.com/vetcher/easystarter/services"
 	"gopkg.in/ini.v1"
 )
 
 // TODO: commands: start, stop, kill, list services
 
 const InputTip string = "InputTip"
-
-var currentDir, _ = os.Getwd()
 
 func CreateEnvFile() {
 	file, err := os.Create("env.ini")
@@ -67,12 +68,30 @@ func PrintEnvironment(env *ini.File) {
 	}
 }
 
-func CommandManager(command string) {
+func CommandManager(command string, args ...string) {
 	switch command {
 	case "start", "s":
-		go func() {
-			fmt.Println("With exec and go")
-		}()
+		if len(args) > 0 {
+			svcName := args[0]
+			if svcName == "all" {
+				services.StartAll()
+			} else {
+				svc := services.NewService(svcName, args[1:]...)
+				if svc != nil {
+					svc.Start()
+				}
+			}
+		} else {
+			fmt.Println("[?] Specify service name.")
+		}
+	case "stop", "kill", "k":
+		if len(args) > 0 {
+			services.StopService(args[0])
+		} else {
+			fmt.Println("[?] Specify service name.")
+		}
+	case "ps", "list":
+		fmt.Println(services.ListServices())
 	case "help", "h":
 		fmt.Println(InputTip)
 	case "reenv", "reload env":
@@ -92,13 +111,14 @@ func InfiniteLoop() {
 	stdin := bufio.NewScanner(os.Stdin)
 	for fmt.Print("->"); stdin.Scan(); fmt.Print("->") {
 		text := stdin.Text()
-		switch text {
+		commands := strings.Split(text, " ")
+		switch commands[0] {
 		case "exit", "e", "ext", "out", "end", "break":
 			return
 		case "":
 			continue
 		default:
-			CommandManager(text)
+			CommandManager(commands[0], commands[1:]...)
 		}
 	}
 }
@@ -120,7 +140,7 @@ func SetupEnv() bool {
 
 func init() {
 	if !SetupEnv() {
-		fmt.Println("I'm out")
+		fmt.Println("I'm out, can't setup env")
 		os.Exit(0)
 	}
 }
