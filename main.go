@@ -9,11 +9,9 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const InputTip string = "InputTip"
+// TODO: commands: start, stop, kill, list services
 
-type Service struct {
-	Name string
-}
+const InputTip string = "InputTip"
 
 var currentDir, _ = os.Getwd()
 
@@ -22,7 +20,7 @@ func CreateEnvFile() {
 	if err != nil {
 		fmt.Printf("[!] Can't create file `env.ini` because of %v.\n", err.Error())
 	}
-	fmt.Printf("[?] File `env.ini` was created.\n[?] You can add some enviroment variables.")
+	fmt.Printf("[?] File `env.ini` was created.\n[?] You can add some environment variables.\n")
 	file.Close()
 }
 
@@ -39,49 +37,95 @@ func LoadEnv() (*ini.File, error) {
 	return envConfig, nil
 }
 
-func NewService() {
+func ExpandEnv(cfg *ini.File) error {
+	keys := cfg.Section("").Keys()
+	var err error
+	for _, key := range keys {
+		err = os.Setenv(key.Name(), key.Value())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+var Environment *ini.File
+
+func PrintEnvironment(env *ini.File) {
+	if env != nil {
+		for _, key := range env.Section("").Keys() {
+			fmt.Printf("%v=%v\n", key.Name(), key.Value())
+		}
+	} else {
+		cmd := exec.Command("printenv")
+		s, err := cmd.Output()
+		if err != nil {
+			fmt.Printf("[!] Can't print environment because of: %v.\n", err)
+			return
+		}
+		fmt.Println(string(s))
+	}
+}
+
+func CommandManager(command string) {
+	switch command {
+	case "start", "s":
+		go func() {
+			fmt.Println("With exec and go")
+		}()
+	case "help", "h":
+		fmt.Println(InputTip)
+	case "reenv", "reload env":
+		if SetupEnv() {
+			fmt.Println("[_] Environment was reloaded.\n")
+		}
+	case "env":
+		PrintEnvironment(Environment)
+	case "env all", "all env":
+		PrintEnvironment(nil)
+	default:
+		fmt.Printf("`%v` is wrong command, try to `help`.\n", command)
+	}
 }
 
 func InfiniteLoop() {
-	scaner := bufio.NewScanner(os.Stdin)
-	expandEnv, err := LoadEnv()
-	if err != nil {
-		fmt.Printf("[!] Can't load environment because of %v.\n", err)
-	}
-	for fmt.Print("->"); scaner.Scan(); fmt.Print("->") {
-		text := scaner.Text()
+	stdin := bufio.NewScanner(os.Stdin)
+	for fmt.Print("->"); stdin.Scan(); fmt.Print("->") {
+		text := stdin.Text()
 		switch text {
-		case "start", "s":
-			err := os.Setenv("$TESTENV", "omg")
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println(os.Getenv("TESTENV"))
-				go fmt.Println("with go " + os.Getenv("TESTENV"))
-				fmt.Println("With exec")
-				cmd := exec.Command("printenv", "$TESTENV")
-				s, err := cmd.Output()
-				fmt.Println("TESTENV: "+string(s), err)
-				go func() {
-					fmt.Println("With exec and go")
-					cmd := exec.Command("printenv", "$TESTENV")
-					s, err := cmd.Output()
-					fmt.Println("TESTENV: "+string(s), err)
-				}()
-			}
-
-		case "help", "h":
-			fmt.Println(InputTip)
 		case "exit", "e", "ext", "out", "end", "break":
-			fmt.Println("I'm out")
-			os.Exit(0)
+			return
+		case "":
+			continue
 		default:
-			fmt.Printf("`%v` is wrong command, try to `help`\n", text)
+			CommandManager(text)
 		}
 	}
 }
 
+func SetupEnv() bool {
+	var err error
+	Environment, err = LoadEnv()
+	if err != nil {
+		fmt.Printf("[!] Can't load environment because of %v.\n", err)
+		return false
+	}
+	err = ExpandEnv(Environment)
+	if err != nil {
+		fmt.Printf("[!] There is an error: %v.\n", err)
+		return false
+	}
+	return true
+}
+
+func init() {
+	if !SetupEnv() {
+		fmt.Println("I'm out")
+		os.Exit(0)
+	}
+}
+
 func main() {
+	defer fmt.Println("I'm out")
 	InfiniteLoop()
 }
