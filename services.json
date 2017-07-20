@@ -1,0 +1,6 @@
+{
+  "testing": {
+    "target": "testing/main.go",
+    "args": ["-duration", "3"]
+  }
+}

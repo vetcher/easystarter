@@ -13,18 +13,18 @@ import (
 
 type service struct {
 	// Имя сервиса
-	Name                  string           `json:"-"`
+	Name string `json:"-"`
 	// Аргументы, которые будут переданы в сервис как параметры командной строки
 	Args                  []string         `json:"args"`
 	currentServiceChannel chan interface{} `json:"-"`
 	currentExternalCmd    *exec.Cmd        `json:"-"`
 	// Отметка о старте
-	StartTime             time.Time        `json:"-"`
-	IsRunning             bool             `json:"-"`
+	StartTime time.Time `json:"-"`
+	IsRunning bool      `json:"-"`
 	// *.go файл, который запускает сервис
-	Target                string           `json:"target"`
+	Target string `json:"target"`
 	// Не даёт запустить новый сервис, если старый еще не закончил работу
-	syncMutex             sync.Mutex       `json:"-"`
+	syncMutex sync.Mutex `json:"-"`
 }
 
 var allServices map[string]*service
@@ -34,26 +34,52 @@ const (
 	KILL_SIGNAL = "kill"
 )
 
-func loadServices() error {
+func loadServices() (error, bool) {
 	raw, err := ioutil.ReadFile("services.json")
 	if err != nil {
-		return err
+		return err, false
 	}
 	allServices = make(map[string]*service)
 	err = json.Unmarshal(raw, &allServices)
 	if err != nil {
-		return err
+		return err, false
 	}
 	for key, val := range allServices {
+		if key == "all" || key == "env" {
+			return fmt.Errorf("name `%v` is not allowed", key), true
+		}
 		val.Name = key
 	}
-	return nil
+	return nil, false
 }
 
 func init() {
-	err := loadServices()
+	err, fatal := loadServices()
 	if err != nil {
-		fmt.Printf("[!] Can't load services because of %v.\n", err)
+		fmt.Printf("[!] Can't load services because %v.\n", err)
+		if fatal {
+			os.Exit(1)
+		}
+	}
+}
+
+func ReloadServices(args ...string) {
+	StopAll()
+	err, fatal := loadServices()
+	if err != nil {
+		fmt.Printf("[!] Can't load services because %v.\n", err)
+		if fatal {
+			os.Exit(1)
+		}
+	}
+	StartAll(args...)
+}
+
+func ReloadService(svcName string) {
+	StopService(svcName)
+	svc := NewService(svcName)
+	if svc != nil {
+		svc.Start()
 	}
 }
 
@@ -65,7 +91,7 @@ func (svc *service) stringSwitch(text string) bool {
 	case KILL_SIGNAL:
 		err := svc.currentExternalCmd.Process.Kill()
 		if err != nil {
-			fmt.Printf("[!] Service %v can't be killed because of %v.\n", svc.Name, err)
+			fmt.Printf("[!] Service %v can't be killed because %v.\n", svc.Name, err)
 		}
 		return true
 	}
@@ -97,7 +123,7 @@ func (svc *service) Start() {
 		svc.currentExternalCmd.Stderr = os.Stderr
 		err := svc.currentExternalCmd.Start()
 		if err != nil {
-			fmt.Printf("[!] Can't start service %v because of %v.\n", svc.Name, err)
+			fmt.Printf("[!] Can't start service %v because %v.\n", svc.Name, err)
 			return
 		}
 		svc.syncMutex.Lock()
@@ -147,9 +173,9 @@ func NewService(svcName string, args ...string) *service {
 			return nil
 		} else {
 			svc.currentServiceChannel = make(chan interface{})
+			svc.Args = append(svc.Args, args...)
 			runArgs := []string{"run", svc.Target}
 			runArgs = append(runArgs, svc.Args...)
-			runArgs = append(runArgs, args...)
 			cmd := exec.Command("go", runArgs...)
 			svc.currentExternalCmd = cmd
 			return svc
@@ -170,14 +196,23 @@ func ListServices() string {
 	return strings.Join(svcStrs, "\n")
 }
 
-func StartAll() {
+func StartAll(args ...string) {
+	for key, val := range allServices {
+		if val.IsRunning {
+			fmt.Printf("[?] %v already started.\n", key)
+		} else {
+			svc := NewService(key, args...)
+			if svc != nil {
+				svc.Start()
+			}
+		}
+	}
+}
+
+func StopAll() {
 	for key, val := range allServices {
 		if val.IsRunning {
 			StopService(key)
-		}
-		svc := NewService(key)
-		if svc != nil {
-			svc.Start()
 		}
 	}
 }

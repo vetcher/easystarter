@@ -14,7 +14,11 @@ import (
 
 // TODO: commands: start, stop, kill, list services
 
-const InputTip string = "InputTip"
+const (
+	VERSION    string = "0.1"
+	MainTip    string = "MainTip"
+	WelcomeTip string = "Easy Starter " + VERSION
+)
 
 func CreateEnvFile() {
 	file, err := os.Create("env.ini")
@@ -70,11 +74,11 @@ func PrintEnvironment(env *ini.File) {
 
 func CommandManager(command string, args ...string) {
 	switch command {
-	case "start", "s":
+	case "start", "s", "up":
 		if len(args) > 0 {
 			svcName := args[0]
 			if svcName == "all" {
-				services.StartAll()
+				services.StartAll(args[1:]...)
 			} else {
 				svc := services.NewService(svcName, args[1:]...)
 				if svc != nil {
@@ -84,26 +88,52 @@ func CommandManager(command string, args ...string) {
 		} else {
 			fmt.Println("[?] Specify service name.")
 		}
-	case "stop", "kill", "k":
+	case "reload", "r":
 		if len(args) > 0 {
-			services.StopService(args[0])
+			svcName := args[0]
+			if svcName == "all" {
+				services.ReloadServices(args[1:]...)
+			} else if svcName == "env" {
+				if SetupEnv() {
+					fmt.Println("[_] Environment was reloaded.")
+				}
+			} else {
+				services.ReloadService(svcName)
+			}
+		} else {
+			fmt.Println("[?] Specify service name.")
+		}
+	case "stop", "kill", "k", "down":
+		if len(args) > 0 {
+			if args[0] == "all" {
+				services.StopAll()
+			} else {
+				services.StopService(args[0])
+			}
 		} else {
 			fmt.Println("[?] Specify service name.")
 		}
 	case "ps", "list":
 		fmt.Println(services.ListServices())
 	case "help", "h":
-		fmt.Println(InputTip)
-	case "reenv", "reload env":
+		fmt.Println(WelcomeTip)
+		fmt.Println(MainTip)
+	case "reenv":
 		if SetupEnv() {
-			fmt.Println("[_] Environment was reloaded.\n")
+			fmt.Println("[_] Environment was reloaded.")
 		}
-	case "env":
-		PrintEnvironment(Environment)
-	case "env all", "all env":
-		PrintEnvironment(nil)
+	case "env", "vars":
+		if len(args) > 0 {
+			if args[0] == "all" {
+				PrintEnvironment(nil)
+			} else {
+				PrintEnvironment(Environment)
+			}
+		}
+	case "version", "v":
+		fmt.Println(VERSION)
 	default:
-		fmt.Printf("`%v` is wrong command, try to `help`.\n", command)
+		fmt.Printf("[?] `%v` is wrong command, try to `help`.\n", command)
 	}
 }
 
@@ -113,7 +143,8 @@ func InfiniteLoop() {
 		text := stdin.Text()
 		commands := strings.Split(text, " ")
 		switch commands[0] {
-		case "exit", "e", "ext", "out", "end", "break":
+		case "exit", "e", "ext", "out", "end", "break", "close", "quit":
+			services.StopAll()
 			return
 		case "":
 			continue
@@ -147,5 +178,6 @@ func init() {
 
 func main() {
 	defer fmt.Println("I'm out")
+	fmt.Println(WelcomeTip)
 	InfiniteLoop()
 }
