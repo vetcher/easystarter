@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/vetcher/easystarter/printer"
 )
 
 type service struct {
@@ -56,7 +58,7 @@ func loadServices() (error, bool) {
 func init() {
 	err, fatal := loadServices()
 	if err != nil {
-		fmt.Printf("[!] Can't load services because %v.\n", err)
+		printer.Printf("!", "Can't load services because %v.", err)
 		if fatal {
 			os.Exit(1)
 		}
@@ -67,7 +69,7 @@ func ReloadServices(args ...string) {
 	StopAll()
 	err, fatal := loadServices()
 	if err != nil {
-		fmt.Printf("[!] Can't load services because %v.\n", err)
+		printer.Printf("!", "Can't load services because %v.", err)
 		if fatal {
 			os.Exit(1)
 		}
@@ -91,7 +93,7 @@ func (svc *service) stringSwitch(text string) bool {
 	case KILL_SIGNAL:
 		err := svc.currentExternalCmd.Process.Kill()
 		if err != nil {
-			fmt.Printf("[!] Service %v can't be killed because %v.\n", svc.Name, err)
+			printer.Printf("!", "Service %v can't be killed because %v.", svc.Name, err)
 		}
 		return true
 	}
@@ -109,7 +111,8 @@ func (svc *service) wait() {
 					return
 				}
 			case error:
-				fmt.Printf("[!] Error with service %v:\n%v\n", svc.Name, typedSignal)
+				printer.Printf("!", "Error with service %v:", svc.Name)
+				printer.Printf("!", "%v", typedSignal)
 				return
 			}
 		}
@@ -123,7 +126,7 @@ func (svc *service) Start() {
 		svc.currentExternalCmd.Stderr = os.Stderr
 		err := svc.currentExternalCmd.Start()
 		if err != nil {
-			fmt.Printf("[!] Can't start service %v because %v.\n", svc.Name, err)
+			printer.Print("!", "Can't start service %v because %v.", svc.Name, err)
 			return
 		}
 		svc.syncMutex.Lock()
@@ -135,18 +138,18 @@ func (svc *service) Start() {
 				svc.currentServiceChannel <- OK_SIGNAL
 			}
 		}()
-		fmt.Printf("[ ] Start service %v.\n", svc.Name)
+		printer.Printf("I", "Start %v.", svc.Name)
 		svc.wait()
 		svc.cleanService()
 		svc.StartTime = time.Time{}
-		fmt.Printf("[ ] Service %v was stopped\n", svc.Name)
+		printer.Printf("I", "Stop %v.", svc.Name)
 	}()
 }
 
 func StopService(svcName string) {
 	svc, exist := allServices[svcName]
 	if !exist {
-		fmt.Printf("[!] Can't find service %v.\n", svcName)
+		printer.Printf("!", "Can't find service %v.", svcName)
 	} else {
 		svc.currentServiceChannel <- KILL_SIGNAL
 		svc.syncMutex.Lock()
@@ -165,11 +168,11 @@ func (svc *service) cleanService() {
 func NewService(svcName string, args ...string) *service {
 	svc, exist := allServices[svcName]
 	if !exist {
-		fmt.Printf("[!] Can't find service %v.\n", svcName)
+		printer.Printf("!", "Can't find service %v.", svcName)
 		return nil
 	} else {
 		if svc.currentExternalCmd != nil || svc.currentServiceChannel != nil {
-			fmt.Printf("[?] Service %v already in use. Please stop or restart it.\n", svc.Name)
+			printer.Printf("?", "Service %v already in use. Please stop or restart it.", svc.Name)
 			return nil
 		} else {
 			svc.currentServiceChannel = make(chan interface{})
@@ -199,7 +202,7 @@ func ListServices() string {
 func StartAll(args ...string) {
 	for key, val := range allServices {
 		if val.IsRunning {
-			fmt.Printf("[?] %v already started.\n", key)
+			printer.Print("?", "%v already started.", key)
 		} else {
 			svc := NewService(key, args...)
 			if svc != nil {

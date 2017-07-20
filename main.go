@@ -8,6 +8,7 @@ import (
 
 	"strings"
 
+	"github.com/vetcher/easystarter/printer"
 	"github.com/vetcher/easystarter/services"
 	"gopkg.in/ini.v1"
 )
@@ -23,9 +24,10 @@ const (
 func CreateEnvFile() {
 	file, err := os.Create("env.ini")
 	if err != nil {
-		fmt.Printf("[!] Can't create file `env.ini` because of %v.\n", err.Error())
+		printer.Printf("!", "Can't create file `env.ini` because of %v.", err.Error())
 	}
-	fmt.Printf("[?] File `env.ini` was created.\n[?] You can add some environment variables.\n")
+	printer.Print("?", "File `env.ini` was created.")
+	printer.Print("?", "You can add some environment variables.")
 	file.Close()
 }
 
@@ -59,13 +61,13 @@ var Environment *ini.File
 func PrintEnvironment(env *ini.File) {
 	if env != nil {
 		for _, key := range env.Section("").Keys() {
-			fmt.Printf("%v=%v\n", key.Name(), key.Value())
+			printer.Printf("I", "%v=%v", key.Name(), key.Value())
 		}
 	} else {
 		cmd := exec.Command("printenv")
 		s, err := cmd.Output()
 		if err != nil {
-			fmt.Printf("[!] Can't print environment because of: %v.\n", err)
+			printer.Printf("!", "Can't print environment because %v.", err)
 			return
 		}
 		fmt.Println(string(s))
@@ -86,7 +88,7 @@ func CommandManager(command string, args ...string) {
 				}
 			}
 		} else {
-			fmt.Println("[?] Specify service name.")
+			printer.Print("?", "Specify service name.")
 		}
 	case "reload", "r":
 		if len(args) > 0 {
@@ -95,13 +97,13 @@ func CommandManager(command string, args ...string) {
 				services.ReloadServices(args[1:]...)
 			} else if svcName == "env" {
 				if SetupEnv() {
-					fmt.Println("[_] Environment was reloaded.")
+					printer.Print("I", "Environment was reloaded.")
 				}
 			} else {
 				services.ReloadService(svcName)
 			}
 		} else {
-			fmt.Println("[?] Specify service name.")
+			printer.Print("?", "Specify service name.")
 		}
 	case "stop", "kill", "k", "down":
 		if len(args) > 0 {
@@ -111,16 +113,16 @@ func CommandManager(command string, args ...string) {
 				services.StopService(args[0])
 			}
 		} else {
-			fmt.Println("[?] Specify service name.")
+			printer.Print("?", "Specify service name.")
 		}
 	case "ps", "list":
-		fmt.Println(services.ListServices())
+		printer.PrintRaw(services.ListServices())
 	case "help", "h":
-		fmt.Println(WelcomeTip)
-		fmt.Println(MainTip)
+		printer.PrintRaw(WelcomeTip)
+		printer.PrintRaw(MainTip)
 	case "reenv":
 		if SetupEnv() {
-			fmt.Println("[_] Environment was reloaded.")
+			printer.Print("I", "Environment was reloaded.")
 		}
 	case "env", "vars":
 		if len(args) > 0 {
@@ -131,9 +133,9 @@ func CommandManager(command string, args ...string) {
 			}
 		}
 	case "version", "v":
-		fmt.Println(VERSION)
+		printer.Print(VERSION)
 	default:
-		fmt.Printf("[?] `%v` is wrong command, try to `help`.\n", command)
+		printer.Printf("?", "`%v` is wrong command, try to `help`.\n", command)
 	}
 }
 
@@ -158,12 +160,12 @@ func SetupEnv() bool {
 	var err error
 	Environment, err = LoadEnv()
 	if err != nil {
-		fmt.Printf("[!] Can't load environment because of %v.\n", err)
+		printer.Printf("!", "Can't load environment because %v.", err)
 		return false
 	}
 	err = ExpandEnv(Environment)
 	if err != nil {
-		fmt.Printf("[!] There is an error: %v.\n", err)
+		printer.Printf("!", "There is an error: %v.", err)
 		return false
 	}
 	return true
@@ -171,13 +173,13 @@ func SetupEnv() bool {
 
 func init() {
 	if !SetupEnv() {
-		fmt.Println("I'm out, can't setup env")
+		printer.Print("!", "I'm out, can't setup env")
 		os.Exit(0)
 	}
 }
 
 func main() {
-	defer fmt.Println("I'm out")
-	fmt.Println(WelcomeTip)
+	defer printer.Print("!", "I'm out")
+	printer.PrintRaw(WelcomeTip)
 	InfiniteLoop()
 }
