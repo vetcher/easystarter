@@ -15,6 +15,7 @@ type service struct {
 	Name string `json:"-"`
 	// Аргументы, которые будут переданы в сервис как параметры командной строки
 	Args                  []string         `json:"args"`
+	// Канал, принимающий сообщения для действий
 	currentServiceChannel chan interface{} `json:"-"`
 	currentExternalCmd    *exec.Cmd        `json:"-"`
 	// Отметка о старте
@@ -65,9 +66,18 @@ func (svc *service) wait() {
 func (svc *service) Start() {
 	go func() {
 		svc.StartTime = time.Now()
-		svc.currentExternalCmd.Stdout = os.Stdout
-		svc.currentExternalCmd.Stderr = os.Stderr
-		err := svc.currentExternalCmd.Start()
+		out, err := os.Create(fmt.Sprintf("logs/%v.log", svc.Name))
+		// Init log file and all output would write to file
+		// If init unsuccessful out will be written to Stdout and Stderr
+		if err != nil {
+			printer.Printf("?", "Can't init %v.log file because %v", svc.Name, err)
+			svc.currentExternalCmd.Stdout = os.Stdout
+			svc.currentExternalCmd.Stderr = os.Stderr
+		} else {
+			svc.currentExternalCmd.Stdout = out
+			svc.currentExternalCmd.Stderr = out
+		}
+		err = svc.currentExternalCmd.Start()
 		if err != nil {
 			printer.Print("!", "Can't start service %v because %v.", svc.Name, err)
 			return

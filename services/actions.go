@@ -25,20 +25,25 @@ var (
 )
 
 func loadServices() (error, bool) {
+	allServices = make(map[string]*service)
 	raw, err := ioutil.ReadFile("services.json")
 	if err != nil {
 		return err, false
 	}
-	allServices = make(map[string]*service)
 	err = json.Unmarshal(raw, &allServices)
 	if err != nil {
 		return err, false
 	}
 	for key, val := range allServices {
-		if key == "all" || key == "env" {
+		if key == "-all" || key == "-env" {
 			return fmt.Errorf("name `%v` is not allowed", key), true
 		}
-		val.Name = key
+		if val.Target == "" {
+			printer.Printf("?", "Field `target` is not provided for %v service", key)
+			delete(allServices, key)
+		} else {
+			val.Name = key
+		}
 	}
 	return nil, false
 }
@@ -93,7 +98,7 @@ func svcByTargetName(target string) (*service, error) {
 // Ищет сервис в соседних директориях
 // Запускаемый файл должен называться `main.go`
 func svcByNameFromDir(svcName string) (*service, error) {
-	svc, err := svcByTargetName(fmt.Sprintf("%v%v/%v%v", TARGET_PREFIX, svcName, TARGET_SUFFIX, TARGET_FILE))
+	svc, err := svcByTargetName(fmt.Sprintf("%v%v/%v%v/%v", TARGET_PREFIX, svcName, TARGET_SUFFIX, svcName, TARGET_FILE))
 	if err != nil {
 		return nil, err
 	}
@@ -132,14 +137,18 @@ func NewService(svcName string, args ...string) *service {
 func ListServices() string {
 	now := time.Now()
 	var svcStrs []string
+	runningCount := 0
 	for key, val := range allServices {
 		isRunningStr := "Down"
 		if val.IsRunning {
 			isRunningStr = fmt.Sprintf("Up for %v", now.Sub(val.StartTime))
+			runningCount++
 		}
 		svcStrs = append(svcStrs, fmt.Sprintf("%v %v %v", key, val.Args, isRunningStr))
 	}
-	return strings.Join(svcStrs, "\n")
+
+	return fmt.Sprintf("In configuration %v services, %v is up\n%v",
+		len(allServices), runningCount, strings.Join(svcStrs, "\n"))
 }
 
 func StartAll(args ...string) {

@@ -15,13 +15,25 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// TODO: commands: start, stop, kill, list services
+// TODO: commands: kill
+// TODO: add customizable service logging
 
 const (
-	VERSION    string = "0.1"
-	MainTip    string = "MainTip"
-	WelcomeTip string = "Easy Starter " + VERSION
+	VERSION          string = "0.1"
+	MainTip          string = "MainTip"
+	WelcomeTip       string = "Easy Starter " + VERSION
+	MKDIR_PERMISSION        = 0777
 )
+
+func init() {
+	if !SetupEnv() {
+		printer.Print("!", "I'm out, can't setup env")
+		os.Exit(0)
+	}
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs", MKDIR_PERMISSION)
+	}
+}
 
 func CreateEnvFile() {
 	file, err := os.Create("env.ini")
@@ -117,7 +129,7 @@ func CommandManager(command string, args ...string) {
 		} else {
 			printer.Print("?", "Specify service name.")
 		}
-	case "ps", "list":
+	case "ps", "list", "ls":
 		printer.PrintRaw(services.ListServices())
 	case "help", "h":
 		printer.PrintRaw(WelcomeTip)
@@ -175,13 +187,6 @@ func SetupEnv() bool {
 		return false
 	}
 	return true
-}
-
-func init() {
-	if !SetupEnv() {
-		printer.Print("!", "I'm out, can't setup env")
-		os.Exit(0)
-	}
 }
 
 func main() {
