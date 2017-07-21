@@ -8,6 +8,8 @@ import (
 
 	"strings"
 
+	"flag"
+
 	"github.com/vetcher/easystarter/printer"
 	"github.com/vetcher/easystarter/services"
 	"gopkg.in/ini.v1"
@@ -79,7 +81,7 @@ func CommandManager(command string, args ...string) {
 	case "start", "s", "up":
 		if len(args) > 0 {
 			svcName := args[0]
-			if svcName == "all" {
+			if svcName == "-all" {
 				services.StartAll(args[1:]...)
 			} else {
 				svc := services.NewService(svcName, args[1:]...)
@@ -93,9 +95,9 @@ func CommandManager(command string, args ...string) {
 	case "reload", "r":
 		if len(args) > 0 {
 			svcName := args[0]
-			if svcName == "all" {
+			if svcName == "-all" {
 				services.ReloadServices(args[1:]...)
-			} else if svcName == "env" {
+			} else if svcName == "-env" {
 				if SetupEnv() {
 					printer.Print("I", "Environment was reloaded.")
 				}
@@ -107,7 +109,7 @@ func CommandManager(command string, args ...string) {
 		}
 	case "stop", "kill", "k", "down":
 		if len(args) > 0 {
-			if args[0] == "all" {
+			if args[0] == "-all" {
 				services.StopAll()
 			} else {
 				services.StopService(args[0])
@@ -126,8 +128,12 @@ func CommandManager(command string, args ...string) {
 		}
 	case "env", "vars":
 		if len(args) > 0 {
-			if args[0] == "all" {
+			if args[0] == "-all" {
 				PrintEnvironment(nil)
+			} else if args[0] == "-reload" {
+				if SetupEnv() {
+					printer.Print("I", "Environment was reloaded.")
+				}
 			} else {
 				PrintEnvironment(Environment)
 			}
@@ -179,6 +185,7 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
 	defer printer.Print("!", "I'm out")
 	printer.PrintRaw(WelcomeTip)
 	InfiniteLoop()
