@@ -16,3 +16,7 @@ Tool to manage your services
 | List environment   | `env`, `vars`                                              | Print environment variables from `env.ini` file or all                                                                                 | `-all`                                                         |                                                                 |
 | Reload environment | `reenv`, `env reload`                                      | Reload environment variables from `env.ini` file                                                                                       |                                                                | Bug: неуказанные переменные не удаляются                        |
 | Help               | `help`, `h`                                                | Show some help information                                                                                                             |                                                                |                                                                 |
+
+## Usage
+Program creates `env.ini` file and `logs` folder if it does not exist yet.
+You can specify services in file `services.json`, where you may set name, target file with `main()` function and command line arguments for service. For file structure look at `services.json` file in repository.
