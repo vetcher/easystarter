@@ -17,6 +17,7 @@ import (
 
 // TODO: commands: kill
 // TODO: add customizable service logging
+// TODO: specify service version
 
 const (
 	VERSION          string = "0.1"

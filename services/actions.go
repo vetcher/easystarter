@@ -177,8 +177,10 @@ func StopService(svcName string) {
 	if !exist {
 		printer.Printf("!", "Can't find service %v.", svcName)
 	} else {
-		svc.currentServiceChannel <- KILL_SIGNAL
-		svc.syncMutex.Lock()
-		svc.syncMutex.Unlock()
+		if svc.IsRunning {
+			svc.currentServiceChannel <- KILL_SIGNAL
+			svc.syncMutex.Lock()
+			svc.syncMutex.Unlock()
+		}
 	}
 }

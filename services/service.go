@@ -14,7 +14,7 @@ type service struct {
 	// Имя сервиса
 	Name string `json:"-"`
 	// Аргументы, которые будут переданы в сервис как параметры командной строки
-	Args                  []string         `json:"args"`
+	Args []string `json:"args"`
 	// Канал, принимающий сообщения для действий
 	currentServiceChannel chan interface{} `json:"-"`
 	currentExternalCmd    *exec.Cmd        `json:"-"`
@@ -107,15 +107,32 @@ func (svc *service) cleanService() {
 	svc.syncMutex.Unlock()
 }
 
+func (svc *service) buildService() error {
+	buildCmd := exec.Command("go", "build", "-o", "./bin/"+svc.Name, svc.Target)
+	err := buildCmd.Start()
+	if err != nil {
+		return fmt.Errorf("can't build because %v", err)
+	}
+	err = buildCmd.Wait()
+	if err != nil {
+		return fmt.Errorf("can't build because %v", err)
+	}
+	return nil
+}
+
 func (svc *service) SetupService(args ...string) error {
 	if svc.currentExternalCmd != nil || svc.currentServiceChannel != nil {
 		return fmt.Errorf("service %v already in use", svc.Name)
 	} else {
+		err := svc.buildService()
+		if err != nil {
+			return err
+		}
 		svc.currentServiceChannel = make(chan interface{})
 		svc.Args = append(svc.Args, args...)
-		runArgs := []string{"run", svc.Target}
+		runArgs := []string{}
 		runArgs = append(runArgs, svc.Args...)
-		cmd := exec.Command("go", runArgs...)
+		cmd := exec.Command("./bin/"+svc.Name, runArgs...)
 		svc.currentExternalCmd = cmd
 		return nil
 	}
