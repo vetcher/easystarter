@@ -33,7 +33,7 @@ func loadServicesConfiguration() (error, bool) {
 		return err, false
 	}
 	for key, val := range allServices {
-		if key == "-all" || key == "-env" {
+		if key == "-all" {
 			return fmt.Errorf("name `%v` is not allowed", key), true
 		}
 		if val.Target == "" {
@@ -49,7 +49,7 @@ func loadServicesConfiguration() (error, bool) {
 func init() {
 	err, fatal := loadServicesConfiguration()
 	if err != nil {
-		glg.Errorf("Can't load services because %v.", err)
+		glg.Errorf("Can't load services: %v.", err)
 		if fatal {
 			os.Exit(1)
 		}
@@ -60,7 +60,7 @@ func RestartServices(args ...string) {
 	StopAllServices()
 	err, fatal := loadServicesConfiguration()
 	if err != nil {
-		glg.Errorf("Can't load services because %v.", err)
+		glg.Errorf("Can't load services: %v.", err)
 		if fatal {
 			os.Exit(1)
 		}
@@ -126,7 +126,7 @@ func GetService(svcName string, args ...string) *service {
 	}
 	err := svc.SetupService(args...)
 	if err != nil {
-		glg.Errorf("Can't create service because %v", err)
+		glg.Errorf("Can't create service: %v", err)
 		return nil
 	}
 	return svc

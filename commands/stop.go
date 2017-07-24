@@ -8,7 +8,7 @@ import (
 type StopCommand struct {
 }
 
-func (c StopCommand) Exec(args ...string) {
+func (c StopCommand) Exec(args ...string) error {
 	if len(args) > 0 {
 		svcName := args[0]
 		if svcName == "-all" {
@@ -19,4 +19,5 @@ func (c StopCommand) Exec(args ...string) {
 	} else {
 		glg.Error("Specify service name.")
 	}
+	return nil
 }

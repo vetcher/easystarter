@@ -8,8 +8,6 @@ import (
 
 	"flag"
 
-	"fmt"
-
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend"
 	"github.com/vetcher/easystarter/commands"
@@ -24,60 +22,57 @@ const (
 	WelcomeTip       = "Easy Starter " + VERSION
 	MKDIR_PERMISSION = 0777
 
-	START_CMD   = "start"
-	STOP_CMD    = "stop"
-	RESTART_CMD = "restart"
-	PS_CMD      = "ps"
-	ENV_CMD     = "env"
-	EXIT_CMD    = "exit"
-	VERSION_CMD = "ver"
+	CMD_START   = "start"
+	CMD_STOP    = "stop"
+	CMD_RESTART = "restart"
+	CMD_PS      = "ps"
+	CMD_ENV     = "env"
+	CMD_EXIT    = "exit"
+	CMD_VERSION = "version"
 )
 
 func init() {
 	if !backend.SetupEnv() {
 		glg.Fatal("I'm out, can't setup env")
-		os.Exit(0)
+		os.Exit(1)
 	}
-	if _, err := os.Stat("logs"); os.IsNotExist(err) {
-		os.Mkdir("logs", MKDIR_PERMISSION)
-	}
-}
-
-var allCommands = map[string]commands.Command{
-	START_CMD:   commands.StartCommand{},
-	STOP_CMD:    commands.StopCommand{},
-	PS_CMD:      commands.PSCommand{},
-	ENV_CMD:     commands.EnvCommand{},
-	RESTART_CMD: commands.RestartCommand{},
-}
-
-func InfiniteLoop() {
-	stdin := bufio.NewScanner(os.Stdin)
-	for fmt.Print("->"); stdin.Scan(); fmt.Print("->") {
-		text := stdin.Text()
-		inputCommands := strings.Split(text, " ")
-		command, ok := allCommands[inputCommands[0]]
-		if ok {
-			command.Exec(inputCommands[1:]...)
+	_, err := os.Stat("logs")
+	if err != nil {
+		if os.IsNotExist(err) {
+			os.Mkdir("logs", MKDIR_PERMISSION)
 		} else {
-			switch inputCommands[0] {
-			case EXIT_CMD:
-				backend.StopAllServices()
-				return
-			case "":
-				continue
-			case VERSION_CMD, "v":
-				glg.Print(VERSION)
-			default:
-				glg.Printf("`%v` is wrong command, try to `help`.\n", inputCommands[0])
-			}
+			glg.Fatal(err)
+			os.Exit(1)
 		}
 	}
 }
 
 func main() {
+	allCommands := map[string]commands.Command{
+		CMD_START:   commands.StartCommand{},
+		CMD_STOP:    commands.StopCommand{},
+		CMD_PS:      commands.PSCommand{},
+		CMD_ENV:     commands.EnvCommand{},
+		CMD_RESTART: commands.RestartCommand{},
+		CMD_VERSION: commands.VersionCommand{VERSION},
+		CMD_EXIT:    commands.ExitCommand{},
+		"":          commands.EmptyCommand{},
+	}
 	flag.Parse()
-	defer glg.Print("I'm out")
 	glg.Print(WelcomeTip)
-	InfiniteLoop()
+	stdin := bufio.NewScanner(os.Stdin)
+	for stdin.Scan() {
+		text := stdin.Text()
+		inputCommands := strings.Split(text, " ")
+		command, ok := allCommands[inputCommands[0]]
+		if ok {
+			err := command.Exec(inputCommands[1:]...)
+			if err != nil {
+				glg.Error(err)
+				return
+			}
+		} else {
+			glg.Printf("`%v` is wrong command, try to `help`.", inputCommands[0])
+		}
+	}
 }

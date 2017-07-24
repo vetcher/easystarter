@@ -8,23 +8,23 @@ import (
 	"time"
 
 	"github.com/kpango/glg"
+	"path/filepath"
 )
 
 type service struct {
 	// Имя сервиса
-	Name string `json:"-"`
+	Name string
 	// Аргументы, которые будут переданы в сервис как параметры командной строки
-	Args []string `json:"args"`
+	Args []string
 	// Канал, принимающий сообщения для действий
-	currentServiceChannel chan interface{} `json:"-"`
-	currentExternalCmd    *exec.Cmd        `json:"-"`
+	currentServiceChannel chan interface{}
+	currentExternalCmd    *exec.Cmd
 	// Отметка о старте
-	StartTime time.Time `json:"-"`
-	IsRunning bool      `json:"-"`
-	// *.go файл, который запускает сервис
-	Target string `json:"target"`
+	StartTime time.Time
+	Target    string
+	IsRunning bool
 	// Не даёт запустить новый сервис, если старый еще не закончил работу
-	syncMutex sync.Mutex `json:"-"`
+	syncMutex sync.Mutex
 }
 
 var allServices map[string]*service
@@ -37,7 +37,7 @@ func (svc *service) stringSwitch(text string) bool {
 	case KILL_SIGNAL:
 		err := svc.currentExternalCmd.Process.Kill()
 		if err != nil {
-			glg.Errorf("Service %v can't be killed because %v.", svc.Name, err)
+			glg.Errorf("Service %v can't be killed: %v.", svc.Name, err)
 		}
 		return true
 	}
@@ -65,12 +65,11 @@ func (svc *service) wait() {
 
 func (svc *service) Start() {
 	go func() {
-		svc.StartTime = time.Now()
 		out, err := os.Create(fmt.Sprintf("./logs/%v.log", svc.Name))
 		// Init log file and all output would write to file
 		// If init unsuccessful out will be written to Stdout and Stderr
 		if err != nil {
-			glg.Warnf("Can't init %v.log file because %v", svc.Name, err)
+			glg.Warnf("Can't init %v.log file: %v", svc.Name, err)
 			svc.currentExternalCmd.Stdout = os.Stdout
 			svc.currentExternalCmd.Stderr = os.Stderr
 		} else {
@@ -79,9 +78,10 @@ func (svc *service) Start() {
 		}
 		err = svc.currentExternalCmd.Start()
 		if err != nil {
-			glg.Errorf("Can't start service %v because %v.", svc.Name, err)
+			glg.Errorf("Can't start service %v: %v.", svc.Name, err)
 			return
 		}
+		svc.StartTime = time.Now()
 		svc.syncMutex.Lock()
 		go func() {
 			err := svc.currentExternalCmd.Wait()
@@ -108,14 +108,16 @@ func (svc *service) cleanService() {
 }
 
 func (svc *service) buildService() error {
-	buildCmd := exec.Command("make", "install", "./"+svc.Name+"/Makefile")
+	buildCmd := exec.Command("make", "install", "-f", "./"+svc.Name+"/Makefile")
+	buildCmd.Stderr = os.Stderr
+	buildCmd.Stdout = os.Stdout
 	err := buildCmd.Start()
 	if err != nil {
-		return fmt.Errorf("can't build because %v", err)
+		return fmt.Errorf("can't start build: %v", err)
 	}
 	err = buildCmd.Wait()
 	if err != nil {
-		return fmt.Errorf("can't build because %v", err)
+		return fmt.Errorf("can't finish build: %v", err)
 	}
 	return nil
 }
@@ -136,15 +138,16 @@ func (svc *service) SetupService(args ...string) error {
 		if err != nil {
 			return err
 		}
-		svc.currentServiceChannel = make(chan interface{})
-		svc.Args = append(svc.Args, args...)
-		runArgs := []string{}
-		runArgs = append(runArgs, svc.Args...)
 		gopath := os.Getenv("GOPATH")
 		if gopath == "" {
 			return fmt.Errorf("GOPATH is empty")
 		} else {
-			cmd := exec.Command(gopath+"bin/"+svc.Name, runArgs...)
+			svc.currentServiceChannel = make(chan interface{})
+			svc.Args = append(svc.Args, args...)
+			runArgs := []string{}
+			runArgs = append(runArgs, svc.Args...)
+
+			cmd := exec.Command(filepath.Join(gopath, "bin", svc.Name), runArgs...)
 			svc.currentExternalCmd = cmd
 			return nil
 		}
