@@ -1,4 +1,4 @@
-package services
+package backend
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vetcher/easystarter/printer"
+	"github.com/kpango/glg"
 )
 
 type service struct {
@@ -37,7 +37,7 @@ func (svc *service) stringSwitch(text string) bool {
 	case KILL_SIGNAL:
 		err := svc.currentExternalCmd.Process.Kill()
 		if err != nil {
-			printer.Printf("!", "Service %v can't be killed because %v.", svc.Name, err)
+			glg.Errorf("Service %v can't be killed because %v.", svc.Name, err)
 		}
 		return true
 	}
@@ -55,8 +55,8 @@ func (svc *service) wait() {
 					return
 				}
 			case error:
-				printer.Printf("!", "Error with service %v:", svc.Name)
-				printer.Printf("!", "%v", typedSignal)
+				glg.Errorf("Error with service %v:", svc.Name)
+				glg.Errorf("%v", typedSignal)
 				return
 			}
 		}
@@ -66,11 +66,11 @@ func (svc *service) wait() {
 func (svc *service) Start() {
 	go func() {
 		svc.StartTime = time.Now()
-		out, err := os.Create(fmt.Sprintf("logs/%v.log", svc.Name))
+		out, err := os.Create(fmt.Sprintf("./logs/%v.log", svc.Name))
 		// Init log file and all output would write to file
 		// If init unsuccessful out will be written to Stdout and Stderr
 		if err != nil {
-			printer.Printf("?", "Can't init %v.log file because %v", svc.Name, err)
+			glg.Warnf("Can't init %v.log file because %v", svc.Name, err)
 			svc.currentExternalCmd.Stdout = os.Stdout
 			svc.currentExternalCmd.Stderr = os.Stderr
 		} else {
@@ -79,7 +79,7 @@ func (svc *service) Start() {
 		}
 		err = svc.currentExternalCmd.Start()
 		if err != nil {
-			printer.Print("!", "Can't start service %v because %v.", svc.Name, err)
+			glg.Errorf("Can't start service %v because %v.", svc.Name, err)
 			return
 		}
 		svc.syncMutex.Lock()
@@ -91,11 +91,11 @@ func (svc *service) Start() {
 				svc.currentServiceChannel <- OK_SIGNAL
 			}
 		}()
-		printer.Printf("I", "Start %v.", svc.Name)
+		glg.Infof("Start %v.", svc.Name)
 		svc.wait()
 		svc.cleanService()
 		svc.StartTime = time.Time{}
-		printer.Printf("I", "Stop %v.", svc.Name)
+		glg.Infof("Stop %v.", svc.Name)
 	}()
 }
 
@@ -108,7 +108,7 @@ func (svc *service) cleanService() {
 }
 
 func (svc *service) buildService() error {
-	buildCmd := exec.Command("go", "build", "-o", "./bin/"+svc.Name, svc.Target)
+	buildCmd := exec.Command("make", "install", "./"+svc.Name+"/Makefile")
 	err := buildCmd.Start()
 	if err != nil {
 		return fmt.Errorf("can't build because %v", err)
@@ -118,6 +118,14 @@ func (svc *service) buildService() error {
 		return fmt.Errorf("can't build because %v", err)
 	}
 	return nil
+}
+
+func (svc *service) Stop() {
+	if svc.IsRunning {
+		svc.currentServiceChannel <- KILL_SIGNAL
+		svc.syncMutex.Lock()
+		svc.syncMutex.Unlock()
+	}
 }
 
 func (svc *service) SetupService(args ...string) error {
@@ -132,8 +140,13 @@ func (svc *service) SetupService(args ...string) error {
 		svc.Args = append(svc.Args, args...)
 		runArgs := []string{}
 		runArgs = append(runArgs, svc.Args...)
-		cmd := exec.Command("./bin/"+svc.Name, runArgs...)
-		svc.currentExternalCmd = cmd
-		return nil
+		gopath := os.Getenv("GOPATH")
+		if gopath == "" {
+			return fmt.Errorf("GOPATH is empty")
+		} else {
+			cmd := exec.Command(gopath+"bin/"+svc.Name, runArgs...)
+			svc.currentExternalCmd = cmd
+			return nil
+		}
 	}
 }

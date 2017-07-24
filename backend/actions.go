@@ -1,4 +1,4 @@
-package services
+package backend
 
 import (
 	"encoding/json"
@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
-	"time"
 
-	"github.com/vetcher/easystarter/printer"
+	"github.com/kpango/glg"
 )
 
 const (
@@ -24,7 +22,7 @@ var (
 	TARGET_FILE   string = *flag.String("filename", "main.go", "This file name is used for `go run` command")
 )
 
-func loadServices() (error, bool) {
+func loadServicesConfiguration() (error, bool) {
 	allServices = make(map[string]*service)
 	raw, err := ioutil.ReadFile("services.json")
 	if err != nil {
@@ -39,7 +37,7 @@ func loadServices() (error, bool) {
 			return fmt.Errorf("name `%v` is not allowed", key), true
 		}
 		if val.Target == "" {
-			printer.Printf("?", "Field `target` is not provided for %v service", key)
+			glg.Warnf("Field `target` is not provided for %v service", key)
 			delete(allServices, key)
 		} else {
 			val.Name = key
@@ -49,30 +47,30 @@ func loadServices() (error, bool) {
 }
 
 func init() {
-	err, fatal := loadServices()
+	err, fatal := loadServicesConfiguration()
 	if err != nil {
-		printer.Printf("!", "Can't load services because %v.", err)
+		glg.Errorf("Can't load services because %v.", err)
 		if fatal {
 			os.Exit(1)
 		}
 	}
 }
 
-func ReloadServices(args ...string) {
-	StopAll()
-	err, fatal := loadServices()
+func RestartServices(args ...string) {
+	StopAllServices()
+	err, fatal := loadServicesConfiguration()
 	if err != nil {
-		printer.Printf("!", "Can't load services because %v.", err)
+		glg.Errorf("Can't load services because %v.", err)
 		if fatal {
 			os.Exit(1)
 		}
 	}
-	StartAll(args...)
+	StartAllServices(args...)
 }
 
-func ReloadService(svcName string) {
+func RestartService(svcName string) {
 	StopService(svcName)
-	svc := NewService(svcName)
+	svc := GetService(svcName)
 	if svc != nil {
 		svc.Start()
 	}
@@ -111,7 +109,7 @@ func findService(svcName string) *service {
 	if !exist {
 		svc, err := svcByNameFromDir(svcName)
 		if err != nil {
-			printer.Printf("!", "Can't find service %v.", svcName)
+			glg.Warnf("Can't find service %v.", svcName)
 			return nil
 		}
 		allServices[svcName] = svc
@@ -121,42 +119,25 @@ func findService(svcName string) *service {
 	}
 }
 
-func NewService(svcName string, args ...string) *service {
+func GetService(svcName string, args ...string) *service {
 	svc := findService(svcName)
 	if svc == nil {
 		return nil
 	}
 	err := svc.SetupService(args...)
 	if err != nil {
-		printer.Printf("?", "Can't create service because %v", err)
+		glg.Errorf("Can't create service because %v", err)
 		return nil
 	}
 	return svc
 }
 
-func ListServices() string {
-	now := time.Now()
-	var svcStrs []string
-	runningCount := 0
-	for key, val := range allServices {
-		isRunningStr := "Down"
-		if val.IsRunning {
-			isRunningStr = fmt.Sprintf("Up for %v", now.Sub(val.StartTime))
-			runningCount++
-		}
-		svcStrs = append(svcStrs, fmt.Sprintf("%v %v %v", key, val.Args, isRunningStr))
-	}
-
-	return fmt.Sprintf("In configuration %v services, %v is up\n%v",
-		len(allServices), runningCount, strings.Join(svcStrs, "\n"))
-}
-
-func StartAll(args ...string) {
+func StartAllServices(args ...string) {
 	for key, val := range allServices {
 		if val.IsRunning {
-			printer.Print("?", "%v already started.", key)
+			glg.Infof("%v already started.", key)
 		} else {
-			svc := NewService(key, args...)
+			svc := GetService(key, args...)
 			if svc != nil {
 				svc.Start()
 			}
@@ -164,7 +145,7 @@ func StartAll(args ...string) {
 	}
 }
 
-func StopAll() {
+func StopAllServices() {
 	for key, val := range allServices {
 		if val.IsRunning {
 			StopService(key)
@@ -175,12 +156,8 @@ func StopAll() {
 func StopService(svcName string) {
 	svc, exist := allServices[svcName]
 	if !exist {
-		printer.Printf("!", "Can't find service %v.", svcName)
+		glg.Warnf("Can't find service %v.", svcName)
 	} else {
-		if svc.IsRunning {
-			svc.currentServiceChannel <- KILL_SIGNAL
-			svc.syncMutex.Lock()
-			svc.syncMutex.Unlock()
-		}
+		svc.Stop()
 	}
 }
