@@ -20,7 +20,7 @@ var (
 )
 
 func CurrentEnvironmentString() string {
-	var formattedStr []string
+	formattedStr := []string{""}
 	for _, key := range Environment.Section(ENV_SECTION).Keys() {
 		formattedStr = append(formattedStr, fmt.Sprintf("%v=%v", key.Name(), key.Value()))
 	}
@@ -80,7 +80,12 @@ func ExpandEnv(cfg *ini.File) error {
 	keys := cfg.Section("").Keys()
 	var err error
 	for _, key := range keys {
-		err = os.Setenv(key.Name(), key.Value())
+		env, ok := os.LookupEnv(key.Name())
+		if ok {
+			err = os.Setenv(key.Name(), fmt.Sprintf("%s:%s", env, os.ExpandEnv(key.Value())))
+		} else {
+			err = os.Setenv(key.Name(), os.ExpandEnv(key.Value()))
+		}
 		if err != nil {
 			return err
 		}

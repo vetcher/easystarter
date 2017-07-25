@@ -57,8 +57,12 @@ func (svc *service) SetupService(args ...string) error {
 		svc.serviceSignalChannel = make(chan string)
 		svc.serviceErrorChannel = make(chan error)
 		svc.Args = append(svc.Args, args...)
+		var runArgs []string
+		for _, arg := range svc.Args {
+			runArgs = append(runArgs, os.ExpandEnv(arg))
+		}
 
-		svc.externalCmd = exec.Command(filepath.Join(gopath, "bin", svc.Name), svc.Args...)
+		svc.externalCmd = exec.Command(filepath.Join(gopath, "bin", svc.Name), runArgs...)
 		return nil
 	}
 }
@@ -154,7 +158,7 @@ func (svc *service) startService() error {
 	}
 	svc.StartTime = time.Now()
 	go svc.waitExecExit()
-	glg.Infof("Start %v.", svc.Name, svc.Args)
+	glg.Infof("Start %s with %v", svc.Name, svc.Args)
 	return nil
 }
 

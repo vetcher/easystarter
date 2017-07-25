@@ -18,7 +18,7 @@ func (c *EnvCommand) Validate(args ...string) error {
 		c.reloadFlag = args[0] == RELOAD
 		return nil
 	}
-	return AtLeastOneArgumentErr
+	return nil
 }
 
 func (c *EnvCommand) Exec(args ...string) error {

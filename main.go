@@ -16,7 +16,7 @@ import (
 // TODO: specify service version
 // TODO: add cleaning command
 // TODO: open logs
-
+// TODO: FIX makefile path
 const (
 	VERSION          = "0.2"
 	WelcomeTip       = "Easy Starter " + VERSION
