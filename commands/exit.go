@@ -4,6 +4,18 @@ import (
 	"errors"
 )
 
+type exitError struct {
+	str string
+}
+
+func NewExitError(err string) error {
+	return exitError{str:err}
+}
+
+func (e exitError) Error() string {
+	return e.str
+}
+
 type ExitCommand struct {
 }
 
