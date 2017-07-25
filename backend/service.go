@@ -18,8 +18,9 @@ type service struct {
 	// Аргументы, которые будут переданы в сервис как параметры командной строки
 	Args []string
 	// Канал, принимающий сообщения для действий
-	currentServiceChannel chan interface{}
-	currentExternalCmd    *exec.Cmd
+	serviceSignalChannel chan string
+	serviceErrorChannel  chan error
+	externalCmd          *exec.Cmd
 	// Отметка о старте
 	StartTime time.Time
 	Target    string
@@ -30,84 +31,26 @@ type service struct {
 
 var allServices map[string]*service
 
-// Returns true if process should be stopped
-func (svc *service) stringSwitch(text string) bool {
-	switch text {
-	case OK_SIGNAL:
-		return true
-	case KILL_SIGNAL:
-		err := svc.currentExternalCmd.Process.Kill()
-		if err != nil {
-			glg.Errorf("Service %v can't be killed: %v.", svc.Name, err)
-		}
-		return true
-	}
-	return false
-}
-
-func (svc *service) wait() {
-	svc.IsRunning = true
-	for sig := range svc.currentServiceChannel {
-		switch typedSignal := sig.(type) {
-		case string:
-			switch typedSignal {
-			case OK_SIGNAL:
-				return
-			case KILL_SIGNAL:
-				err := svc.currentExternalCmd.Process.Kill()
-				if err != nil {
-					glg.Errorf("Service %v can't be killed: %v.", svc.Name, err)
-				}
-				return
-			}
-		case error:
-			glg.Errorf("Error with service %v:", svc.Name)
-			glg.Errorf("%v", typedSignal)
-			return
-		}
-	}
-}
-
-func (svc *service) Start() {
-	out, err := os.Create(fmt.Sprintf("./logs/%v.log", svc.Name))
-	// Init log file and all output would write to file
-	// If init unsuccessful out will be written to Stdout and Stderr
-	if err != nil {
-		glg.Warnf("Can't init %v.log file: %v", svc.Name, err)
-		svc.currentExternalCmd.Stdout = os.Stdout
-		svc.currentExternalCmd.Stderr = os.Stderr
+func (svc *service) SetupService(args ...string) error {
+	if svc.externalCmd != nil || svc.serviceSignalChannel != nil {
+		return fmt.Errorf("service %v already in use", svc.Name)
 	} else {
-		svc.currentExternalCmd.Stdout = out
-		svc.currentExternalCmd.Stderr = out
-	}
-	err = svc.currentExternalCmd.Start()
-	if err != nil {
-		glg.Errorf("Can't start service %v: %v.", svc.Name, err)
-		return
-	}
-	svc.StartTime = time.Now()
-	svc.syncMutex.Lock()
-	go func() {
-		err := svc.currentExternalCmd.Wait()
+		err := svc.buildService()
 		if err != nil {
-			svc.currentServiceChannel <- err
-		} else {
-			svc.currentServiceChannel <- OK_SIGNAL
+			return err
 		}
-	}()
-	glg.Infof("Start %v.", svc.Name)
-	svc.wait()
-	svc.cleanService()
-	glg.Infof("Stop %v.", svc.Name)
-}
+		gopath := os.Getenv("GOPATH")
+		if gopath == "" {
+			return fmt.Errorf("GOPATH is empty")
+		}
+		// Remember signal channel
+		svc.serviceSignalChannel = make(chan string)
+		svc.serviceErrorChannel = make(chan error)
+		svc.Args = append(svc.Args, args...)
 
-func (svc *service) cleanService() {
-	close(svc.currentServiceChannel)
-	svc.currentServiceChannel = nil
-	svc.currentExternalCmd = nil
-	svc.IsRunning = false
-	svc.StartTime = time.Time{}
-	svc.syncMutex.Unlock()
+		svc.externalCmd = exec.Command(filepath.Join(gopath, "bin", svc.Name), svc.Args...)
+		return nil
+	}
 }
 
 func (svc *service) buildService() error {
@@ -125,34 +68,99 @@ func (svc *service) buildService() error {
 	return nil
 }
 
-func (svc *service) Stop() {
-	if svc.IsRunning {
-		svc.currentServiceChannel <- KILL_SIGNAL
-		svc.syncMutex.Lock()
-		svc.syncMutex.Unlock()
+func (svc *service) Start() {
+	err := svc.logInit()
+	if err != nil {
+		glg.Warn(err)
+	}
+	err = svc.startService()
+	if err != nil {
+		glg.Error(err)
+	}
+	// Now service really started
+	svc.handleSignals()
+	// Self cleaning because we are not pigs
+	svc.cleanService()
+	glg.Infof("Stop %v.", svc.Name)
+}
+
+func (svc *service) logInit() error {
+	out, err := os.Create(fmt.Sprintf("./logs/%v.log", svc.Name))
+	// Init log file and all output would write to file
+	// If init unsuccessful out will be written to Stdout and Stderr
+	if err != nil {
+		svc.externalCmd.Stdout = os.Stdout
+		svc.externalCmd.Stderr = os.Stderr
+		return fmt.Errorf("can't init %v.log file: %v", svc.Name, err)
+	} else {
+		svc.externalCmd.Stdout = out
+		svc.externalCmd.Stderr = out
+		return nil
 	}
 }
 
-func (svc *service) SetupService(args ...string) error {
-	if svc.currentExternalCmd != nil || svc.currentServiceChannel != nil {
-		return fmt.Errorf("service %v already in use", svc.Name)
-	} else {
-		err := svc.buildService()
-		if err != nil {
-			return err
+func (svc *service) handleSignals() {
+	svc.IsRunning = true
+	for {
+		select {
+		case sig := <-svc.serviceSignalChannel:
+			switch sig {
+			case OK_SIGNAL:
+				return
+			case KILL_SIGNAL:
+				err := svc.externalCmd.Process.Kill()
+				if err != nil {
+					glg.Errorf("Service %v can't be killed: %v.", svc.Name, err)
+				}
+				return
+			}
+		case err := <-svc.serviceErrorChannel:
+			glg.Errorf("Service %v error:", svc.Name)
+			glg.Errorf("%v", err)
+			return
 		}
-		gopath := os.Getenv("GOPATH")
-		if gopath == "" {
-			return fmt.Errorf("GOPATH is empty")
-		} else {
-			svc.currentServiceChannel = make(chan interface{})
-			svc.Args = append(svc.Args, args...)
-			runArgs := []string{}
-			runArgs = append(runArgs, svc.Args...)
+	}
+}
 
-			cmd := exec.Command(filepath.Join(gopath, "bin", svc.Name), runArgs...)
-			svc.currentExternalCmd = cmd
-			return nil
-		}
+func (svc *service) waitExecExit() {
+	err := svc.externalCmd.Wait()
+	if err != nil {
+		svc.serviceErrorChannel <- err
+	} else {
+		svc.serviceSignalChannel <- OK_SIGNAL
+	}
+}
+
+func (svc *service) startService() error {
+	err := svc.externalCmd.Start()
+	if err != nil {
+		return fmt.Errorf("can't start service %v: %v.", svc.Name, err)
+	}
+	svc.StartTime = time.Now()
+	svc.syncMutex.Lock()
+	go svc.waitExecExit()
+	glg.Infof("Start %v.", svc.Name)
+	return nil
+}
+
+func (svc *service) waitCleanService() {
+	svc.syncMutex.Lock()
+	svc.syncMutex.Unlock()
+}
+
+func (svc *service) cleanService() {
+	close(svc.serviceSignalChannel)
+	svc.serviceSignalChannel = nil
+	svc.externalCmd = nil
+	svc.IsRunning = false
+	svc.StartTime = time.Time{}
+	svc.syncMutex.Unlock()
+	// Now service really stopped
+}
+
+func (svc *service) Stop() {
+	if svc.IsRunning {
+		svc.serviceSignalChannel <- KILL_SIGNAL
+		svc.waitCleanService()
 	}
 }
