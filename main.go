@@ -13,9 +13,9 @@ import (
 	"github.com/vetcher/easystarter/commands"
 )
 
-// TODO: commands: separate stop and kill
 // TODO: specify service version
 // TODO: add cleaning command
+// TODO: open logs
 
 const (
 	VERSION          = "0.2"
@@ -30,12 +30,15 @@ const (
 	CMD_EXIT    = "exit"
 	CMD_VERSION = "version"
 	CMD_KILL    = "kill"
+
+	EXIT_CODE_SETUP_ENV_ERR = 1 + iota
+	EXIT_CODE_INIT_LOGS_DIR_ERR
 )
 
 func init() {
 	if !backend.SetupEnv() {
 		glg.Fatal("I'm out, can't setup env")
-		os.Exit(1)
+		os.Exit(EXIT_CODE_SETUP_ENV_ERR)
 	}
 	_, err := os.Stat("logs")
 	if err != nil {
@@ -43,7 +46,7 @@ func init() {
 			os.Mkdir("logs", MKDIR_PERMISSION)
 		} else {
 			glg.Fatal(err)
-			os.Exit(1)
+			os.Exit(EXIT_CODE_INIT_LOGS_DIR_ERR)
 		}
 	}
 }

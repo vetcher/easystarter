@@ -95,13 +95,13 @@ func (svc *service) Start() {
 }
 
 func (svc *service) logInit() error {
-	out, err := os.Create(fmt.Sprintf("./logs/%v.log", svc.Name))
+	out, err := os.Create(fmt.Sprintf("./logs/%s.log", svc.Name))
 	// Init log file and all output would write to file
 	// If init unsuccessful out will be written to Stdout and Stderr
 	if err != nil {
 		svc.externalCmd.Stdout = os.Stdout
 		svc.externalCmd.Stderr = os.Stderr
-		return fmt.Errorf("can't init %v.log file: %v", svc.Name, err)
+		return fmt.Errorf("can't init %s.log file: %v", svc.Name, err)
 	} else {
 		svc.externalCmd.Stdout = out
 		svc.externalCmd.Stderr = out
@@ -160,10 +160,12 @@ func (svc *service) startService() error {
 
 func (svc *service) cleanService() {
 	close(svc.serviceSignalChannel)
+	close(svc.serviceErrorChannel)
 	svc.serviceSignalChannel = nil
+	svc.serviceErrorChannel = nil
 	svc.externalCmd = nil
-	svc.IsRunning = false
 	svc.StartTime = time.Time{}
+	svc.IsRunning = false
 	svc.syncMutex.Unlock()
 	// Now service really stopped
 }

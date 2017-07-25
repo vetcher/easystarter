@@ -30,9 +30,6 @@ func loadServicesConfiguration() (error, bool) {
 		return err, false
 	}
 	for key, val := range allServices {
-		if key == "-all" {
-			return fmt.Errorf("name `%v` is not allowed", key), true
-		}
 		if val.Target == "" {
 			glg.Warnf("Field `target` is not provided for %v service", key)
 			delete(allServices, key)
@@ -145,9 +142,7 @@ func StartAllServices(args ...string) {
 
 func StopAllServices() {
 	for _, svc := range allServices {
-		if svc.IsRunning {
-			StopService(svc.Name)
-		}
+		svc.Stop()
 	}
 }
 
@@ -162,9 +157,7 @@ func StopService(svcName string) {
 
 func KillAllServices() {
 	for _, svc := range allServices {
-		if svc.IsRunning {
-			KillService(svc.Name)
-		}
+		svc.Kill()
 	}
 }
 
