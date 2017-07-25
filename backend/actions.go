@@ -134,7 +134,7 @@ func StartAllServices(args ...string) {
 		} else {
 			svc := GetService(svc.Name, args...)
 			if svc != nil {
-				svc.Start()
+				go svc.Start()
 			}
 		}
 	}
