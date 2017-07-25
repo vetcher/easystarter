@@ -8,6 +8,10 @@ type VersionCommand struct {
 	Version string
 }
 
+func (c VersionCommand) Validate(args ...string) error {
+	return nil
+}
+
 func (c VersionCommand) Exec(args ...string) error {
 	glg.Print(c.Version)
 	return nil

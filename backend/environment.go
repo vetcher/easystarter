@@ -1,12 +1,11 @@
 package backend
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
-
-	"flag"
 
 	"github.com/kpango/glg"
 	"gopkg.in/ini.v1"
@@ -15,7 +14,7 @@ import (
 const ENV_SECTION = ""
 
 var (
-	ENV_FILE_NAME = *flag.String("config", "configuration.ini", "File with configuration parameters")
+	ENV_FILE_NAME = *flag.String("config", "env.ini", "File with configuration parameters")
 
 	Environment *ini.File
 )

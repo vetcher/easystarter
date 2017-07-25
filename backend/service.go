@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kpango/glg"
 	"path/filepath"
+
+	"github.com/kpango/glg"
 )
 
 type service struct {
@@ -46,57 +47,58 @@ func (svc *service) stringSwitch(text string) bool {
 
 func (svc *service) wait() {
 	svc.IsRunning = true
-	for {
-		select {
-		case signal := <-svc.currentServiceChannel:
-			switch typedSignal := signal.(type) {
-			case string:
-				if svc.stringSwitch(typedSignal) {
-					return
+	for sig := range svc.currentServiceChannel {
+		switch typedSignal := sig.(type) {
+		case string:
+			switch typedSignal {
+			case OK_SIGNAL:
+				return
+			case KILL_SIGNAL:
+				err := svc.currentExternalCmd.Process.Kill()
+				if err != nil {
+					glg.Errorf("Service %v can't be killed: %v.", svc.Name, err)
 				}
-			case error:
-				glg.Errorf("Error with service %v:", svc.Name)
-				glg.Errorf("%v", typedSignal)
 				return
 			}
+		case error:
+			glg.Errorf("Error with service %v:", svc.Name)
+			glg.Errorf("%v", typedSignal)
+			return
 		}
 	}
 }
 
 func (svc *service) Start() {
+	out, err := os.Create(fmt.Sprintf("./logs/%v.log", svc.Name))
+	// Init log file and all output would write to file
+	// If init unsuccessful out will be written to Stdout and Stderr
+	if err != nil {
+		glg.Warnf("Can't init %v.log file: %v", svc.Name, err)
+		svc.currentExternalCmd.Stdout = os.Stdout
+		svc.currentExternalCmd.Stderr = os.Stderr
+	} else {
+		svc.currentExternalCmd.Stdout = out
+		svc.currentExternalCmd.Stderr = out
+	}
+	err = svc.currentExternalCmd.Start()
+	if err != nil {
+		glg.Errorf("Can't start service %v: %v.", svc.Name, err)
+		return
+	}
+	svc.StartTime = time.Now()
+	svc.syncMutex.Lock()
 	go func() {
-		out, err := os.Create(fmt.Sprintf("./logs/%v.log", svc.Name))
-		// Init log file and all output would write to file
-		// If init unsuccessful out will be written to Stdout and Stderr
+		err := svc.currentExternalCmd.Wait()
 		if err != nil {
-			glg.Warnf("Can't init %v.log file: %v", svc.Name, err)
-			svc.currentExternalCmd.Stdout = os.Stdout
-			svc.currentExternalCmd.Stderr = os.Stderr
+			svc.currentServiceChannel <- err
 		} else {
-			svc.currentExternalCmd.Stdout = out
-			svc.currentExternalCmd.Stderr = out
+			svc.currentServiceChannel <- OK_SIGNAL
 		}
-		err = svc.currentExternalCmd.Start()
-		if err != nil {
-			glg.Errorf("Can't start service %v: %v.", svc.Name, err)
-			return
-		}
-		svc.StartTime = time.Now()
-		svc.syncMutex.Lock()
-		go func() {
-			err := svc.currentExternalCmd.Wait()
-			if err != nil {
-				svc.currentServiceChannel <- err
-			} else {
-				svc.currentServiceChannel <- OK_SIGNAL
-			}
-		}()
-		glg.Infof("Start %v.", svc.Name)
-		svc.wait()
-		svc.cleanService()
-		svc.StartTime = time.Time{}
-		glg.Infof("Stop %v.", svc.Name)
 	}()
+	glg.Infof("Start %v.", svc.Name)
+	svc.wait()
+	svc.cleanService()
+	glg.Infof("Stop %v.", svc.Name)
 }
 
 func (svc *service) cleanService() {
@@ -104,6 +106,7 @@ func (svc *service) cleanService() {
 	svc.currentServiceChannel = nil
 	svc.currentExternalCmd = nil
 	svc.IsRunning = false
+	svc.StartTime = time.Time{}
 	svc.syncMutex.Unlock()
 }
 

@@ -56,7 +56,7 @@ func init() {
 	}
 }
 
-func RestartServices(args ...string) {
+func RestartAllServices(args ...string) {
 	StopAllServices()
 	err, fatal := loadServicesConfiguration()
 	if err != nil {

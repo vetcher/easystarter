@@ -1,12 +1,24 @@
 package commands
 
 import (
+	"errors"
+
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend"
-	"errors"
 )
 
 type EnvCommand struct {
+	allFlag    bool
+	reloadFlag bool
+}
+
+func (c EnvCommand) Validate(args ...string) error {
+	if len(args) > 0 {
+		c.allFlag = args[0] == ALL
+		c.reloadFlag = args[0] == RELOAD
+		return nil
+	}
+	return AtLeastOneArgumentErr
 }
 
 func (c EnvCommand) Exec(args ...string) error {

@@ -66,7 +66,12 @@ func main() {
 		inputCommands := strings.Split(text, " ")
 		command, ok := allCommands[inputCommands[0]]
 		if ok {
-			err := command.Exec(inputCommands[1:]...)
+			err := command.Validate(inputCommands[1:]...)
+			if err != nil {
+				glg.Errorf("Validation error: %v", err)
+				continue
+			}
+			err = command.Exec(inputCommands[1:]...)
 			if err != nil {
 				glg.Error(err)
 				return
