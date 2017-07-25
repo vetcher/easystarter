@@ -9,7 +9,15 @@ import (
 
 	"path/filepath"
 
+	"syscall"
+
 	"github.com/kpango/glg"
+)
+
+const (
+	OK_SIGNAL   = "ok"
+	STOP_SIGNAL = "stop"
+	KILL_SIGNAL = "kill"
 )
 
 type service struct {
@@ -26,6 +34,7 @@ type service struct {
 	Target    string
 	IsRunning bool
 	// Не даёт запустить новый сервис, если старый еще не закончил работу
+	// Не дает перезаписывать каналы и `externalCmd` поля
 	syncMutex sync.Mutex
 }
 
@@ -35,6 +44,7 @@ func (svc *service) SetupService(args ...string) error {
 	if svc.externalCmd != nil || svc.serviceSignalChannel != nil {
 		return fmt.Errorf("service %v already in use", svc.Name)
 	} else {
+		svc.syncMutex.Lock()
 		err := svc.buildService()
 		if err != nil {
 			return err
@@ -54,7 +64,7 @@ func (svc *service) SetupService(args ...string) error {
 }
 
 func (svc *service) buildService() error {
-	buildCmd := exec.Command("make", "install", "-f", "./"+svc.Name+"/Makefile")
+	buildCmd := exec.Command("make", "install", "-f", svc.Target)
 	buildCmd.Stderr = os.Stderr
 	buildCmd.Stdout = os.Stdout
 	err := buildCmd.Start()
@@ -113,6 +123,12 @@ func (svc *service) handleSignals() {
 					glg.Errorf("Service %v can't be killed: %v.", svc.Name, err)
 				}
 				return
+			case STOP_SIGNAL:
+				err := svc.externalCmd.Process.Signal(syscall.SIGTERM)
+				if err != nil {
+					glg.Errorf("Service %v can't be stopped: %v.", svc.Name, err)
+				}
+				return
 			}
 		case err := <-svc.serviceErrorChannel:
 			glg.Errorf("Service %v error:", svc.Name)
@@ -137,15 +153,9 @@ func (svc *service) startService() error {
 		return fmt.Errorf("can't start service %v: %v.", svc.Name, err)
 	}
 	svc.StartTime = time.Now()
-	svc.syncMutex.Lock()
 	go svc.waitExecExit()
-	glg.Infof("Start %v.", svc.Name)
+	glg.Infof("Start %v.", svc.Name, svc.Args)
 	return nil
-}
-
-func (svc *service) waitCleanService() {
-	svc.syncMutex.Lock()
-	svc.syncMutex.Unlock()
 }
 
 func (svc *service) cleanService() {
@@ -160,7 +170,20 @@ func (svc *service) cleanService() {
 
 func (svc *service) Stop() {
 	if svc.IsRunning {
-		svc.serviceSignalChannel <- KILL_SIGNAL
-		svc.waitCleanService()
+		svc.serviceSignalChannel <- STOP_SIGNAL
 	}
+}
+
+func (svc *service) Kill() {
+	if svc.IsRunning {
+		svc.serviceSignalChannel <- KILL_SIGNAL
+	}
+}
+
+func (svc *service) String() string {
+	isRunningStr := "Down"
+	if svc.IsRunning {
+		isRunningStr = fmt.Sprintf("Up for %v", time.Since(svc.StartTime))
+	}
+	return fmt.Sprintf("%v\t%v\t%v", svc.Name, isRunningStr, svc.Args)
 }

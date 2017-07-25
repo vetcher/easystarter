@@ -6,19 +6,18 @@ import (
 )
 
 type PSCommand struct {
-	allFlag string
+	allFlag bool
 }
 
-func (c PSCommand) Validate(args ...string) error {
-	if len(args[0]) > 0 {
-		c.allFlag = args[0]
-	} else {
-		c.allFlag = ""
+func (c *PSCommand) Validate(args ...string) error {
+	c.allFlag = false
+	if len(args) > 0 {
+		c.allFlag = args[0] == ALL
 	}
 	return nil
 }
 
-func (c PSCommand) Exec(args ...string) error {
+func (c *PSCommand) Exec(args ...string) error {
 	glg.Info(backend.ServicesString(c.allFlag))
 	return nil
 }

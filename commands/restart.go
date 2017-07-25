@@ -8,7 +8,7 @@ type RestartCommand struct {
 	allFlag bool
 }
 
-func (c RestartCommand) Validate(args ...string) error {
+func (c *RestartCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.allFlag = args[0] == ALL
 		return nil
@@ -16,9 +16,9 @@ func (c RestartCommand) Validate(args ...string) error {
 	return AtLeastOneArgumentErr
 }
 
-func (c RestartCommand) Exec(args ...string) error {
+func (c *RestartCommand) Exec(args ...string) error {
 	if c.allFlag {
-		backend.RestartAllServices(args...)
+		backend.RestartAllServices(args[1:]...)
 	} else {
 		backend.RestartService(args[0])
 	}

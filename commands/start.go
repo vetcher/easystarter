@@ -8,7 +8,7 @@ type StartCommand struct {
 	allFlag bool
 }
 
-func (c StartCommand) Validate(args ...string) error {
+func (c *StartCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.allFlag = args[0] == ALL
 		return nil
@@ -16,7 +16,7 @@ func (c StartCommand) Validate(args ...string) error {
 	return AtLeastOneArgumentErr
 }
 
-func (c StartCommand) Exec(args ...string) error {
+func (c *StartCommand) Exec(args ...string) error {
 	if c.allFlag {
 		backend.StartAllServices(args[1:]...)
 	} else {

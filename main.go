@@ -29,6 +29,7 @@ const (
 	CMD_ENV     = "env"
 	CMD_EXIT    = "exit"
 	CMD_VERSION = "version"
+	CMD_KILL    = "kill"
 )
 
 func init() {
@@ -49,14 +50,15 @@ func init() {
 
 func main() {
 	allCommands := map[string]commands.Command{
-		CMD_START:   commands.StartCommand{},
-		CMD_STOP:    commands.StopCommand{},
-		CMD_PS:      commands.PSCommand{},
-		CMD_ENV:     commands.EnvCommand{},
-		CMD_RESTART: commands.RestartCommand{},
-		CMD_VERSION: commands.VersionCommand{VERSION},
-		CMD_EXIT:    commands.ExitCommand{},
-		"":          commands.EmptyCommand{},
+		CMD_START:   &commands.StartCommand{},
+		CMD_STOP:    &commands.StopCommand{},
+		CMD_PS:      &commands.PSCommand{},
+		CMD_ENV:     &commands.EnvCommand{},
+		CMD_RESTART: &commands.RestartCommand{},
+		CMD_VERSION: &commands.VersionCommand{VERSION},
+		CMD_EXIT:    &commands.ExitCommand{},
+		"":          &commands.EmptyCommand{},
+		CMD_KILL:    &commands.KillCommand{},
 	}
 	flag.Parse()
 	glg.Print(WelcomeTip)

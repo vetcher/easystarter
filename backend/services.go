@@ -3,25 +3,17 @@ package backend
 import (
 	"fmt"
 	"strings"
-	"time"
 )
 
-func ServicesString(param string) string {
-	isPrintAll := false
-	if param == "-all" {
-		isPrintAll = true
-	}
-	now := time.Now()
+func ServicesString(allFlag bool) string {
 	var svcStrings []string
 	runningCount := 0
-	for key, val := range allServices {
-		if val.IsRunning || isPrintAll {
-			isRunningStr := "Down"
-			if val.IsRunning {
-				isRunningStr = fmt.Sprintf("Up for %v", now.Sub(val.StartTime))
+	for _, svc := range allServices {
+		if svc.IsRunning || allFlag {
+			if svc.IsRunning {
 				runningCount++
 			}
-			svcStrings = append(svcStrings, fmt.Sprintf("%v %v %v", key, val.Args, isRunningStr))
+			svcStrings = append(svcStrings, svc.String())
 		}
 	}
 

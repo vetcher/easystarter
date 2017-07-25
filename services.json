@@ -1,6 +1,6 @@
 {
   "testing": {
-    "target": "testing/cmd/testing/main.go",
+    "target": "testing/Makefile",
     "args": ["-duration", "3"]
   }
 }

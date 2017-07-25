@@ -18,10 +18,10 @@ type Command interface {
 type EmptyCommand struct {
 }
 
-func (c EmptyCommand) Validate(args ...string) error {
+func (c *EmptyCommand) Validate(args ...string) error {
 	return nil
 }
 
-func (c EmptyCommand) Exec(args ...string) error {
+func (c *EmptyCommand) Exec(args ...string) error {
 	return nil
 }

@@ -12,7 +12,7 @@ type EnvCommand struct {
 	reloadFlag bool
 }
 
-func (c EnvCommand) Validate(args ...string) error {
+func (c *EnvCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.allFlag = args[0] == ALL
 		c.reloadFlag = args[0] == RELOAD
@@ -21,19 +21,17 @@ func (c EnvCommand) Validate(args ...string) error {
 	return AtLeastOneArgumentErr
 }
 
-func (c EnvCommand) Exec(args ...string) error {
-	if len(args) > 0 {
-		if args[0] == "-all" {
-			glg.Info(backend.CurrentEnvironmentString())
-		} else if args[0] == "-reload" {
-			if backend.SetupEnv() {
-				glg.Info("Environment was reloaded.")
-			} else {
-				return errors.New("Can't load environment")
-			}
+func (c *EnvCommand) Exec(args ...string) error {
+	if c.allFlag {
+		glg.Info(backend.AllEnvironmentString())
+	} else if c.reloadFlag {
+		if backend.SetupEnv() {
+			glg.Info("Environment was reloaded.")
 		} else {
-			glg.Info(backend.AllEnvironmentString())
+			return errors.New("Can't load environment")
 		}
+	} else {
+		glg.Info(backend.CurrentEnvironmentString())
 	}
 	return nil
 }

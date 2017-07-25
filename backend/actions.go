@@ -8,18 +8,15 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/kpango/glg"
-)
+	"path/filepath"
 
-const (
-	OK_SIGNAL   = "ok"
-	KILL_SIGNAL = "kill"
+	"github.com/kpango/glg"
 )
 
 var (
 	TARGET_PREFIX string = *flag.String("prefix", "", "Use to find service from dir")
-	TARGET_SUFFIX string = *flag.String("suffix", "cmd/", "Use to find service from dir")
-	TARGET_FILE   string = *flag.String("filename", "main.go", "This file name is used for `go run` command")
+	TARGET_SUFFIX string = *flag.String("suffix", "", "Use to find service from dir")
+	TARGET_FILE   string = *flag.String("filename", "Makefile", "This file name is used for `go run` command")
 )
 
 func loadServicesConfiguration() (error, bool) {
@@ -96,7 +93,8 @@ func svcByTargetName(target string) (*service, error) {
 // Ищет сервис в соседних директориях
 // Запускаемый файл должен называться `main.go`
 func svcByNameFromDir(svcName string) (*service, error) {
-	svc, err := svcByTargetName(fmt.Sprintf("%v%v/%v%v/%v", TARGET_PREFIX, svcName, TARGET_SUFFIX, svcName, TARGET_FILE))
+	println(filepath.Join(TARGET_PREFIX, svcName, TARGET_SUFFIX, TARGET_FILE))
+	svc, err := svcByTargetName(filepath.Join(TARGET_PREFIX, svcName, TARGET_SUFFIX, TARGET_FILE))
 	if err != nil {
 		return nil, err
 	}
@@ -104,27 +102,27 @@ func svcByNameFromDir(svcName string) (*service, error) {
 	return svc, nil
 }
 
-func findService(svcName string) *service {
+func findService(svcName string) (*service, error) {
 	svc, exist := allServices[svcName]
 	if !exist {
 		svc, err := svcByNameFromDir(svcName)
 		if err != nil {
-			glg.Warnf("Can't find service %v.", svcName)
-			return nil
+			return nil, fmt.Errorf("Can't find service %v.", svcName)
 		}
 		allServices[svcName] = svc
-		return svc
+		return svc, nil
 	} else {
-		return svc
+		return svc, nil
 	}
 }
 
 func GetService(svcName string, args ...string) *service {
-	svc := findService(svcName)
-	if svc == nil {
+	svc, err := findService(svcName)
+	if err != nil {
+		glg.Warn(err)
 		return nil
 	}
-	err := svc.SetupService(args...)
+	err = svc.SetupService(args...)
 	if err != nil {
 		glg.Errorf("Can't create service: %v", err)
 		return nil
@@ -133,11 +131,11 @@ func GetService(svcName string, args ...string) *service {
 }
 
 func StartAllServices(args ...string) {
-	for key, val := range allServices {
-		if val.IsRunning {
-			glg.Infof("%v already started.", key)
+	for _, svc := range allServices {
+		if svc.IsRunning {
+			glg.Infof("%v already started.", svc.Name)
 		} else {
-			svc := GetService(key, args...)
+			svc := GetService(svc.Name, args...)
 			if svc != nil {
 				svc.Start()
 			}
@@ -146,9 +144,9 @@ func StartAllServices(args ...string) {
 }
 
 func StopAllServices() {
-	for key, val := range allServices {
-		if val.IsRunning {
-			StopService(key)
+	for _, svc := range allServices {
+		if svc.IsRunning {
+			StopService(svc.Name)
 		}
 	}
 }
@@ -159,5 +157,22 @@ func StopService(svcName string) {
 		glg.Warnf("Can't find service %v.", svcName)
 	} else {
 		svc.Stop()
+	}
+}
+
+func KillAllServices() {
+	for _, svc := range allServices {
+		if svc.IsRunning {
+			KillService(svc.Name)
+		}
+	}
+}
+
+func KillService(svcName string) {
+	svc, exist := allServices[svcName]
+	if !exist {
+		glg.Warnf("Can't find service %v.", svcName)
+	} else {
+		svc.Kill()
 	}
 }

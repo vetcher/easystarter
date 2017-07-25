@@ -4,11 +4,11 @@ import (
 	"github.com/vetcher/easystarter/backend"
 )
 
-type StopCommand struct {
+type KillCommand struct {
 	allFlag bool
 }
 
-func (c *StopCommand) Validate(args ...string) error {
+func (c *KillCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.allFlag = args[0] == ALL
 		return nil
@@ -16,11 +16,11 @@ func (c *StopCommand) Validate(args ...string) error {
 	return AtLeastOneArgumentErr
 }
 
-func (c *StopCommand) Exec(args ...string) error {
+func (c *KillCommand) Exec(args ...string) error {
 	if c.allFlag {
-		backend.StopAllServices()
+		backend.KillAllServices()
 	} else {
-		backend.StopService(args[0])
+		backend.KillService(args[0])
 	}
 	return nil
 }
