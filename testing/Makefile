@@ -1,4 +1,4 @@
 NAME=testing
-SOURCE=./${NAME}/cmd/${NAME}
+SOURCE=./cmd/${NAME}
 
 install: ; (go install ${SOURCE}/...)
