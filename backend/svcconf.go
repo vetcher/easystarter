@@ -7,8 +7,12 @@ import (
 
 	"path/filepath"
 
+	"os/user"
+
 	"github.com/kpango/glg"
 )
+
+const SERVICES_JSON = "services.json"
 
 type ServiceConfig struct {
 	Target string   `json:"target"` // Path to Makefile inside Dir
@@ -18,9 +22,18 @@ type ServiceConfig struct {
 
 func loadServicesConfiguration() (error, bool) {
 	configs := make(map[string]*ServiceConfig)
-	raw, err := ioutil.ReadFile("services.json")
+	raw, err := ioutil.ReadFile(SERVICES_JSON)
 	if err != nil {
-		return err, false
+		// Lookup in home directory for configuration SERVICES_JSON file
+		usr, err1 := user.Current()
+		if err1 != nil {
+			glg.Fatalf("Can't get current user: %v", err1)
+		}
+		raw1, err1 := ioutil.ReadFile(filepath.Join(usr.HomeDir, SERVICES_JSON))
+		if err1 != nil {
+			return err, false
+		}
+		raw = raw1
 	}
 	err = json.Unmarshal(raw, &configs)
 	if err != nil {
