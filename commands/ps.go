@@ -18,6 +18,6 @@ func (c *PSCommand) Validate(args ...string) error {
 }
 
 func (c *PSCommand) Exec(args ...string) error {
-	glg.Info(backend.ServicesString(c.allFlag))
+	glg.Print(backend.ServicesString(c.allFlag))
 	return nil
 }

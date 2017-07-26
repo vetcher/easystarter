@@ -2,11 +2,12 @@ package backend
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 
 	"path/filepath"
+
+	"flag"
 
 	"github.com/kpango/glg"
 )
@@ -17,13 +18,11 @@ const (
 )
 
 var (
-	TARGET_PREFIX = flag.String("prefix", "", "Use to find service from dir")
-	TARGET_SUFFIX = flag.String("suffix", "", "Use to find service from dir")
-	TARGET_FILE   = flag.String("filename", "Makefile", "This file name is used for `go run` command")
+	targetFile = flag.String("file", "Makefile", "Path to makefile of microservices")
 )
 
 func RestartAllServices(args ...string) {
-	StopAllServices()
+	StopAllServicesAndSync()
 	err, fatal := loadServicesConfiguration()
 	if err != nil {
 		glg.Errorf("Can't load services: %v.", err)
@@ -62,8 +61,7 @@ func svcByTargetName(target string) (*service, error) {
 // Ищет сервис в соседних директориях
 // Запускаемый файл должен называться `main.go`
 func svcByNameFromDir(svcName string) (*service, error) {
-	println(filepath.Join(*TARGET_PREFIX, svcName, *TARGET_SUFFIX, *TARGET_FILE))
-	svc, err := svcByTargetName(filepath.Join(*TARGET_PREFIX, svcName, *TARGET_SUFFIX, *TARGET_FILE))
+	svc, err := svcByTargetName(filepath.Join(STARTUP_DIR, svcName, *targetFile))
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +104,6 @@ func StartAllServices(args ...string) {
 		} else {
 			svc := GetService(svc.Name, args...)
 			if svc != nil {
-				abs, _ := filepath.Abs("./")
-				println("BEFORE START:", abs, svc.Name)
 				go svc.Start()
 			}
 		}

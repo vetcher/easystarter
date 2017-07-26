@@ -14,14 +14,14 @@ import (
 const ENV_SECTION = ""
 
 var (
-	ENV_FILE_NAME = *flag.String("config", "env.ini", "File with configuration parameters")
+	envFileName = flag.String("config", "env.ini", "File with configuration parameters")
 
-	Environment *ini.File
+	environment *ini.File
 )
 
 func CurrentEnvironmentString() string {
 	formattedStr := []string{""}
-	for _, key := range Environment.Section(ENV_SECTION).Keys() {
+	for _, key := range environment.Section(ENV_SECTION).Keys() {
 		formattedStr = append(formattedStr, fmt.Sprintf("%v=%v", key.Name(), key.Value()))
 	}
 	return strings.Join(formattedStr, "\n")
@@ -39,12 +39,12 @@ func AllEnvironmentString() string {
 
 func SetupEnv() bool {
 	var err error
-	Environment, err = LoadEnv()
+	environment, err = LoadEnv()
 	if err != nil {
 		glg.Warnf("Can't load environment: %v", err)
 		return false
 	}
-	err = ExpandEnv(Environment)
+	err = ExpandEnv(environment)
 	if err != nil {
 		glg.Errorf("%v", err)
 		return false
@@ -53,23 +53,23 @@ func SetupEnv() bool {
 }
 
 func CreateEnvFile() {
-	file, err := os.Create(ENV_FILE_NAME)
+	file, err := os.Create(*envFileName)
 	if err != nil {
-		glg.Warnf("Can't create file `%v`: %v.", ENV_FILE_NAME, err.Error())
+		glg.Warnf("Can't create file `%v`: %v.", *envFileName, err.Error())
 	}
-	glg.Infof("File `%v` was created.", ENV_FILE_NAME)
+	glg.Infof("File `%v` was created.", *envFileName)
 	glg.Info("You can add some environment variables.")
 	file.Close()
 }
 
 func LoadEnv() (*ini.File, error) {
-	file, err := os.Open(ENV_FILE_NAME)
+	file, err := os.Open(*envFileName)
 	if err != nil {
 		CreateEnvFile()
 	} else {
 		file.Close()
 	}
-	envConfig, err := ini.Load(ENV_FILE_NAME)
+	envConfig, err := ini.Load(*envFileName)
 	if err != nil {
 		return nil, err
 	}

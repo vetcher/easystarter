@@ -32,19 +32,18 @@ type service struct {
 	// Отметка о старте
 	StartTime time.Time
 	Target    string
+	Dir       string
 	IsRunning bool
 	// Не даёт запустить новый сервис, если старый еще не закончил работу
 	// Не дает перезаписывать каналы и `externalCmd` поля
 	syncMutex sync.Mutex
-	Done      sync.WaitGroup
+	// Для синхронизованной остановки сервисов
+	Done sync.WaitGroup
 }
 
 var (
 	allServices map[string]*service
 	STARTUP_DIR string
-
-	// Из-за костыля с Chdir приходится блокировать смену текущей папки...
-	//builderMX sync.Mutex
 )
 
 func init() {
@@ -84,26 +83,14 @@ func (svc *service) SetupService(args ...string) error {
 }
 
 func (svc *service) buildService() error {
-	/*builderMX.Lock()
-	defer builderMX.Unlock()*/
-	/*err := os.Chdir(filepath.Join(STARTUP_DIR, TARGET_PREFIX, svc.Name))
-	if err != nil {
-		return fmt.Errorf("can't change dir: %v", err)
-	}*/
-	buildCmd := exec.Command("make", "install", "-f", filepath.Join(*TARGET_SUFFIX, svc.Target))
+	buildCmd := exec.Command("make", "install", "-f", filepath.Join(svc.Target))
 	buildCmd.Stderr = os.Stderr
 	buildCmd.Stdout = os.Stdout
-	println(TARGET_PREFIX)
-	buildCmd.Dir = filepath.Join(STARTUP_DIR, *TARGET_PREFIX, svc.Name)
-	//buildCmd.Env = os.Environ()
+	buildCmd.Dir = filepath.Join(svc.Dir, svc.Name)
 	err := buildCmd.Start()
 	if err != nil {
 		return fmt.Errorf("can't start build: %v", err)
 	}
-	/*err = os.Chdir(STARTUP_DIR)
-	if err != nil {
-		return fmt.Errorf("can't return to old dir: %v", err)
-	}*/
 	err = buildCmd.Wait()
 	if err != nil {
 		return fmt.Errorf("can't finish build: %v", err)
@@ -112,8 +99,6 @@ func (svc *service) buildService() error {
 }
 
 func (svc *service) Start() {
-	abs, _ := filepath.Abs("./")
-	println("INSIDE START:", abs)
 	err := svc.logInit()
 	if err != nil {
 		glg.Warn(err)
@@ -126,12 +111,10 @@ func (svc *service) Start() {
 	svc.handleSignals()
 	// Self cleaning because we are not pigs
 	svc.cleanService()
-	glg.Infof("Stop %v.", svc.Name)
+	glg.Infof("STOP %v", glg.Yellow(svc.Name))
 }
 
 func (svc *service) logInit() error {
-	abs, _ := filepath.Abs("./")
-	println("IN LOGINIT:", abs)
 	out, err := os.Create(filepath.Join(STARTUP_DIR, "logs", fmt.Sprintf("%s.log", svc.Name)))
 	// Init log file and all output would write to file
 	// If init unsuccessful out will be written to Stdout and Stderr
@@ -191,7 +174,7 @@ func (svc *service) startService() error {
 	}
 	svc.StartTime = time.Now()
 	go svc.waitExecExit()
-	glg.Infof("Start %s with %v", svc.Name, svc.Args)
+	glg.Infof("START %s\033[32m with %v\033[39m", glg.Yellow(svc.Name), svc.Args) // \033[32m is Green color, \033[39m is colorless
 	return nil
 }
 
@@ -232,5 +215,5 @@ func (svc *service) String() string {
 	if svc.IsRunning {
 		isRunningStr = fmt.Sprintf("Up for %v", time.Since(svc.StartTime))
 	}
-	return fmt.Sprintf("%v\t%v\t%v", svc.Name, isRunningStr, svc.Args)
+	return fmt.Sprintf("%v\t%v\t%v", glg.Yellow(svc.Name), isRunningStr, svc.Args)
 }

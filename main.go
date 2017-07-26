@@ -38,6 +38,10 @@ const (
 	EXIT_CODE_INIT_LOGS_DIR_ERR
 )
 
+var (
+	isStartOnStartup = flag.Bool("s", false, "Start all services after startup. Same as enter `start -all` after run program")
+)
+
 func init() {
 	if !backend.SetupEnv() {
 		glg.Fatal("I'm out, can't setup env")
@@ -80,6 +84,10 @@ func main() {
 	flag.Parse()
 	go handleSignals()
 	glg.Print(WelcomeTip)
+	if *isStartOnStartup {
+		_ = allCommands[CMD_START].Validate("-all")
+		_ = allCommands[CMD_START].Exec("-all")
+	}
 	stdin := bufio.NewScanner(os.Stdin)
 	for stdin.Scan() {
 		text := stdin.Text()
@@ -93,6 +101,7 @@ func main() {
 			}
 			err = command.Exec(inputCommands[1:]...)
 			if err != nil {
+				backend.StopAllServicesAndSync()
 				glg.Error(err)
 				return
 			}

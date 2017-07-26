@@ -5,12 +5,15 @@ import (
 	"io/ioutil"
 	"os"
 
+	"path/filepath"
+
 	"github.com/kpango/glg"
 )
 
 type ServiceConfig struct {
-	Target string   `json:"target"`
-	Args   []string `json:"args"`
+	Target string   `json:"target"` // Path to Makefile inside Dir
+	Args   []string `json:"args"`   // Command line arguments for service
+	Dir    string   `json:"dir"`    // Full path to directory with microservice
 }
 
 func loadServicesConfiguration() (error, bool) {
@@ -29,9 +32,10 @@ func loadServicesConfiguration() (error, bool) {
 			glg.Warnf("Field `target` is not provided for %v service", svcName)
 		} else {
 			allServices[svcName] = &service{
-				Name: svcName,
-				Args: svc.Args,
-				Target: svc.Target,
+				Name:   svcName,
+				Args:   svc.Args,
+				Target: filepath.Clean(svc.Target),
+				Dir:    filepath.Clean(svc.Dir),
 			}
 		}
 	}
