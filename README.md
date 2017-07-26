@@ -9,7 +9,7 @@ Tool to manage your services
 |:------------:|---------------------------------------------------------------------------------------------------------------|
 |`-config <path-to-env.ini>`  | path to `env.ini` file with environment variables.                                             |
 |`-filename <filename>`       | Use this file name instead of `Makefile` when start service.                                   |
-|`-s={true|false}`            | This flag means start all services after startup. Same as enter `start -all` after run program.|
+|`-s={true/false}`            | This flag means start all services after startup. Same as enter `start -all` after run program.|
 
 ## Commands
 
