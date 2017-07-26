@@ -24,10 +24,10 @@ Tool to manage your services
 | List environment   | `env`                     | Print environment variables from `env.ini` file or all. With flag `-reload` reloads environment from `env.ini` file                    | `-all` or `-reload`                                            |                                                                 |
 
 ## Usage
-Program creates `logs` folder if it does not exist yet.
-Logs for each service writes to `./logs/<servicename>.log` file.
+Program creates `logs` folder if it does not exist yet.    
+Logs for each service writes to `./logs/<servicename>.log` file.    
 
 ## Service configuration
-You can specify services in file `services.json`, where you may set name, target Makefile with `install` _rule_, custom directory (absolute or relative) to service folder and command line arguments for service.
-If `services.json` not in current directory, program use file from `$HOME` folder.
-For file structure refer at `services.json` file in repository. __Field `target` required__.
+You can specify services in file `services.json`, where you may set name, target Makefile with `install` _rule_, custom directory (absolute or relative) to service folder and command line arguments for service.    
+If `services.json` not in current directory, program use file from `$HOME` folder.    
+For file structure refer at `services.json` file in repository. __Field `target` required__.    
