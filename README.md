@@ -5,15 +5,11 @@ Tool to manage your services
 `go get github.com/vetcher/easystarter`
 
 ## Command line arguments
-|Argument      |Description                                                 |
-|:------------:|------------------------------------------------------------|
-|`-config`     | path to `env.ini` file with environment variables          |
-|`-prefix`*    | Prefix of path to `Makefile`                               |
-|`-suffix`*    | Suffix of path to `Makefile`                               |
-|`-filename`*  | Use this file name instead of `Makefile` when start service|
-
-> Before start new service, tool builds it by instructions described in Makefile's `install` _target_. If you start not configured in `services.json` service,
-> program look at `<prefix>/<service name>/<suffix>/<filename>`, that should be makefile with `install` _rule_.
+|Argument      |Description                                                                                                    |
+|:------------:|---------------------------------------------------------------------------------------------------------------|
+|`-config <path-to-env.ini>`  | path to `env.ini` file with environment variables.                                             |
+|`-filename <filename>`       | Use this file name instead of `Makefile` when start service.                                   |
+|`-s={true|false}`            | This flag means start all services after startup. Same as enter `start -all` after run program.|
 
 ## Commands
 
@@ -28,7 +24,10 @@ Tool to manage your services
 | List environment   | `env`                     | Print environment variables from `env.ini` file or all. With flag `-reload` reloads environment from `env.ini` file                    | `-all` or `-reload`                                            |                                                                 |
 
 ## Usage
-Program creates `env.ini` file and `logs` folder if it does not exist yet.
-You can specify services in file `services.json`, where you may set name, target Makefile with `install` _rule_ and command line arguments for service.
-For file structure refer at `services.json` file in repository. __Field `target` required__.
+Program creates `logs` folder if it does not exist yet.
 Logs for each service writes to `./logs/<servicename>.log` file.
+
+## Service configuration
+You can specify services in file `services.json`, where you may set name, target Makefile with `install` _rule_, custom directory (absolute or relative) to service folder and command line arguments for service.
+If `services.json` not in current directory, program use file from `$HOME` folder.
+For file structure refer at `services.json` file in repository. __Field `target` required__.

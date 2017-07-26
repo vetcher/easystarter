@@ -7,6 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"os/user"
+	"path/filepath"
+
 	"github.com/kpango/glg"
 	"gopkg.in/ini.v1"
 )
@@ -16,7 +19,8 @@ const ENV_SECTION = ""
 var (
 	envFileName = flag.String("config", "env.ini", "File with configuration parameters")
 
-	environment *ini.File
+	environment       *ini.File
+	globalEnvFilePath string
 )
 
 func CurrentEnvironmentString() string {
@@ -53,19 +57,35 @@ func SetupEnv() bool {
 }
 
 func CreateEnvFile() {
-	file, err := os.Create(*envFileName)
+	file, err := os.Create(globalEnvFilePath)
 	if err != nil {
 		glg.Warnf("Can't create file `%v`: %v.", *envFileName, err.Error())
 	}
-	glg.Infof("File `%v` was created.", *envFileName)
-	glg.Info("You can add some environment variables.")
+	glg.Printf("File `%v` was created.", glg.Green(globalEnvFilePath))
+	glg.Print("You can add some environment variables.")
 	file.Close()
 }
 
 func LoadEnv() (*ini.File, error) {
 	file, err := os.Open(*envFileName)
 	if err != nil {
-		CreateEnvFile()
+		// Lookup in home directory for configuration global env file
+		usr, err1 := user.Current()
+		if err1 != nil {
+			glg.Fatalf("Can't get current user: %v", err1)
+		}
+		globalEnvFilePath = filepath.Join(usr.HomeDir, *envFileName)
+		file, err = os.Open(globalEnvFilePath)
+		if err != nil {
+			CreateEnvFile()
+		} else {
+			file.Close()
+		}
+		envConfig, err := ini.Load(globalEnvFilePath)
+		if err != nil {
+			return nil, err
+		}
+		return envConfig, nil
 	} else {
 		file.Close()
 	}
