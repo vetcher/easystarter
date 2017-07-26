@@ -8,6 +8,9 @@ import (
 
 	"flag"
 
+	"os/signal"
+	"syscall"
+
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend"
 	"github.com/vetcher/easystarter/commands"
@@ -16,9 +19,9 @@ import (
 // TODO: specify service version
 // TODO: add cleaning command
 // TODO: open logs
-// TODO: FIX makefile path
+
 const (
-	VERSION          = "0.2"
+	VERSION          = "0.2b"
 	WelcomeTip       = "Easy Starter " + VERSION
 	MKDIR_PERMISSION = 0777
 
@@ -51,6 +54,17 @@ func init() {
 	}
 }
 
+func handleSignals() {
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	for sig := range sigChan {
+		glg.Print("Stop all services")
+		backend.StopAllServicesAndSync()
+		glg.Print("Terminate")
+		os.Exit(int(sig.(syscall.Signal)))
+	}
+}
+
 func main() {
 	allCommands := map[string]commands.Command{
 		CMD_START:   &commands.StartCommand{},
@@ -64,6 +78,7 @@ func main() {
 		CMD_KILL:    &commands.KillCommand{},
 	}
 	flag.Parse()
+	go handleSignals()
 	glg.Print(WelcomeTip)
 	stdin := bufio.NewScanner(os.Stdin)
 	for stdin.Scan() {

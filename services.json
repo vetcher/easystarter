@@ -1,6 +1,6 @@
 {
   "testing": {
-    "target": "testing/Makefile",
+    "target": "Makefile",
     "args": ["-duration", "3"]
   }
 }

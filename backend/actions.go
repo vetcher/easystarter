@@ -1,11 +1,9 @@
 package backend
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"path/filepath"
@@ -13,42 +11,16 @@ import (
 	"github.com/kpango/glg"
 )
 
-var (
-	TARGET_PREFIX string = *flag.String("prefix", "", "Use to find service from dir")
-	TARGET_SUFFIX string = *flag.String("suffix", "", "Use to find service from dir")
-	TARGET_FILE   string = *flag.String("filename", "Makefile", "This file name is used for `go run` command")
+const (
+	CANT_FIND_SERVICE                      = "Can't find service"
+	FATAL_WHEN_LOAD_SERVICES_CONFIGURATION = 1
 )
 
-func loadServicesConfiguration() (error, bool) {
-	allServices = make(map[string]*service)
-	raw, err := ioutil.ReadFile("services.json")
-	if err != nil {
-		return err, false
-	}
-	err = json.Unmarshal(raw, &allServices)
-	if err != nil {
-		return err, false
-	}
-	for key, val := range allServices {
-		if val.Target == "" {
-			glg.Warnf("Field `target` is not provided for %v service", key)
-			delete(allServices, key)
-		} else {
-			val.Name = key
-		}
-	}
-	return nil, false
-}
-
-func init() {
-	err, fatal := loadServicesConfiguration()
-	if err != nil {
-		glg.Errorf("Can't load services: %v.", err)
-		if fatal {
-			os.Exit(1)
-		}
-	}
-}
+var (
+	TARGET_PREFIX = flag.String("prefix", "", "Use to find service from dir")
+	TARGET_SUFFIX = flag.String("suffix", "", "Use to find service from dir")
+	TARGET_FILE   = flag.String("filename", "Makefile", "This file name is used for `go run` command")
+)
 
 func RestartAllServices(args ...string) {
 	StopAllServices()
@@ -56,7 +28,7 @@ func RestartAllServices(args ...string) {
 	if err != nil {
 		glg.Errorf("Can't load services: %v.", err)
 		if fatal {
-			os.Exit(1)
+			os.Exit(FATAL_WHEN_LOAD_SERVICES_CONFIGURATION)
 		}
 	}
 	StartAllServices(args...)
@@ -90,8 +62,8 @@ func svcByTargetName(target string) (*service, error) {
 // Ищет сервис в соседних директориях
 // Запускаемый файл должен называться `main.go`
 func svcByNameFromDir(svcName string) (*service, error) {
-	println(filepath.Join(TARGET_PREFIX, svcName, TARGET_SUFFIX, TARGET_FILE))
-	svc, err := svcByTargetName(filepath.Join(TARGET_PREFIX, svcName, TARGET_SUFFIX, TARGET_FILE))
+	println(filepath.Join(*TARGET_PREFIX, svcName, *TARGET_SUFFIX, *TARGET_FILE))
+	svc, err := svcByTargetName(filepath.Join(*TARGET_PREFIX, svcName, *TARGET_SUFFIX, *TARGET_FILE))
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +76,7 @@ func findService(svcName string) (*service, error) {
 	if !exist {
 		svc, err := svcByNameFromDir(svcName)
 		if err != nil {
-			return nil, fmt.Errorf("Can't find service %v.", svcName)
+			return nil, fmt.Errorf("%s %s", CANT_FIND_SERVICE, svcName)
 		}
 		allServices[svcName] = svc
 		return svc, nil
@@ -130,10 +102,12 @@ func GetService(svcName string, args ...string) *service {
 func StartAllServices(args ...string) {
 	for _, svc := range allServices {
 		if svc.IsRunning {
-			glg.Infof("%v already started.", svc.Name)
+			glg.Infof("%v already started", svc.Name)
 		} else {
 			svc := GetService(svc.Name, args...)
 			if svc != nil {
+				abs, _ := filepath.Abs("./")
+				println("BEFORE START:", abs, svc.Name)
 				go svc.Start()
 			}
 		}
@@ -146,10 +120,16 @@ func StopAllServices() {
 	}
 }
 
+func StopAllServicesAndSync() {
+	for _, svc := range allServices {
+		svc.SyncStop()
+	}
+}
+
 func StopService(svcName string) {
 	svc, exist := allServices[svcName]
 	if !exist {
-		glg.Warnf("Can't find service %v.", svcName)
+		glg.Warnf("%s %s", CANT_FIND_SERVICE, svcName)
 	} else {
 		svc.Stop()
 	}
@@ -164,7 +144,7 @@ func KillAllServices() {
 func KillService(svcName string) {
 	svc, exist := allServices[svcName]
 	if !exist {
-		glg.Warnf("Can't find service %v.", svcName)
+		glg.Warnf("%s %s", CANT_FIND_SERVICE, svcName)
 	} else {
 		svc.Kill()
 	}

@@ -36,15 +36,29 @@ type service struct {
 	// Не даёт запустить новый сервис, если старый еще не закончил работу
 	// Не дает перезаписывать каналы и `externalCmd` поля
 	syncMutex sync.Mutex
+	Done      sync.WaitGroup
 }
 
-var allServices map[string]*service
+var (
+	allServices map[string]*service
+	STARTUP_DIR string
+
+	// Из-за костыля с Chdir приходится блокировать смену текущей папки...
+	//builderMX sync.Mutex
+)
+
+func init() {
+	runningDir, err := os.Getwd()
+	if err != nil {
+		glg.Fatalf("getwd fatal error: %v", err)
+	}
+	STARTUP_DIR = runningDir
+}
 
 func (svc *service) SetupService(args ...string) error {
 	if svc.externalCmd != nil || svc.serviceSignalChannel != nil {
 		return fmt.Errorf("service %v already in use", svc.Name)
 	} else {
-		svc.syncMutex.Lock()
 		err := svc.buildService()
 		if err != nil {
 			return err
@@ -53,9 +67,11 @@ func (svc *service) SetupService(args ...string) error {
 		if gopath == "" {
 			return fmt.Errorf("GOPATH is empty")
 		}
+		svc.syncMutex.Lock()
 		// Remember signal channel
 		svc.serviceSignalChannel = make(chan string)
 		svc.serviceErrorChannel = make(chan error)
+		svc.Done.Add(1)
 		svc.Args = append(svc.Args, args...)
 		var runArgs []string
 		for _, arg := range svc.Args {
@@ -68,13 +84,26 @@ func (svc *service) SetupService(args ...string) error {
 }
 
 func (svc *service) buildService() error {
-	buildCmd := exec.Command("make", "install", "-f", svc.Target)
+	/*builderMX.Lock()
+	defer builderMX.Unlock()*/
+	/*err := os.Chdir(filepath.Join(STARTUP_DIR, TARGET_PREFIX, svc.Name))
+	if err != nil {
+		return fmt.Errorf("can't change dir: %v", err)
+	}*/
+	buildCmd := exec.Command("make", "install", "-f", filepath.Join(*TARGET_SUFFIX, svc.Target))
 	buildCmd.Stderr = os.Stderr
 	buildCmd.Stdout = os.Stdout
+	println(TARGET_PREFIX)
+	buildCmd.Dir = filepath.Join(STARTUP_DIR, *TARGET_PREFIX, svc.Name)
+	//buildCmd.Env = os.Environ()
 	err := buildCmd.Start()
 	if err != nil {
 		return fmt.Errorf("can't start build: %v", err)
 	}
+	/*err = os.Chdir(STARTUP_DIR)
+	if err != nil {
+		return fmt.Errorf("can't return to old dir: %v", err)
+	}*/
 	err = buildCmd.Wait()
 	if err != nil {
 		return fmt.Errorf("can't finish build: %v", err)
@@ -83,6 +112,8 @@ func (svc *service) buildService() error {
 }
 
 func (svc *service) Start() {
+	abs, _ := filepath.Abs("./")
+	println("INSIDE START:", abs)
 	err := svc.logInit()
 	if err != nil {
 		glg.Warn(err)
@@ -99,7 +130,9 @@ func (svc *service) Start() {
 }
 
 func (svc *service) logInit() error {
-	out, err := os.Create(fmt.Sprintf("./logs/%s.log", svc.Name))
+	abs, _ := filepath.Abs("./")
+	println("IN LOGINIT:", abs)
+	out, err := os.Create(filepath.Join(STARTUP_DIR, "logs", fmt.Sprintf("%s.log", svc.Name)))
 	// Init log file and all output would write to file
 	// If init unsuccessful out will be written to Stdout and Stderr
 	if err != nil {
@@ -170,6 +203,7 @@ func (svc *service) cleanService() {
 	svc.externalCmd = nil
 	svc.StartTime = time.Time{}
 	svc.IsRunning = false
+	svc.Done.Done()
 	svc.syncMutex.Unlock()
 	// Now service really stopped
 }
@@ -177,6 +211,13 @@ func (svc *service) cleanService() {
 func (svc *service) Stop() {
 	if svc.IsRunning {
 		svc.serviceSignalChannel <- STOP_SIGNAL
+	}
+}
+
+func (svc *service) SyncStop() {
+	if svc.IsRunning {
+		svc.serviceSignalChannel <- STOP_SIGNAL
+		svc.Done.Wait()
 	}
 }
 
