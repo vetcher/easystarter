@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/vetcher/easystarter/backend"
+	"github.com/vetcher/easystarter/services"
 )
 
 type StartCommand struct {
@@ -18,12 +18,9 @@ func (c *StartCommand) Validate(args ...string) error {
 
 func (c *StartCommand) Exec(args ...string) error {
 	if c.allFlag {
-		backend.StartAllServices(args[1:]...)
+		services.ServiceManager.StartAllServices()
 	} else {
-		svc := backend.GetService(args[0], args[1:]...)
-		if svc != nil {
-			go svc.Start()
-		}
+		services.ServiceManager.Start(args[0])
 	}
 	return nil
 }

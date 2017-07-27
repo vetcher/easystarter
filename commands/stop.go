@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/vetcher/easystarter/backend"
+	"github.com/vetcher/easystarter/services"
 )
 
 type StopCommand struct {
@@ -18,9 +18,9 @@ func (c *StopCommand) Validate(args ...string) error {
 
 func (c *StopCommand) Exec(args ...string) error {
 	if c.allFlag {
-		backend.StopAllServices()
+		services.ServiceManager.StopAllServices()
 	} else {
-		backend.StopService(args[0])
+		services.ServiceManager.Stop(args[0])
 	}
 	return nil
 }
