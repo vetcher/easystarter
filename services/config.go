@@ -14,7 +14,7 @@ import (
 const SERVICES_JSON = "services.json"
 
 var (
-	configFile = flag.String("file", SERVICES_JSON, "Path to makefile of microservices inside Dir")
+	configFile = flag.String("config", SERVICES_JSON, "Path to makefile of microservices inside Dir")
 )
 
 type ServiceConfig struct {
@@ -74,8 +74,4 @@ func loadServices() error {
 		}
 	}
 	return util.ComposeErrors(configurationErrors)
-}
-
-func init() {
-
 }

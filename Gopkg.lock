@@ -2,10 +2,22 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/gosuri/uitable"
+  packages = [".","util/strutil","util/wordwrap"]
+  revision = "36ee7e946282a3fb1cfecd476ddc9b35d8847e42"
+
+[[projects]]
   name = "github.com/kpango/glg"
   packages = ["."]
   revision = "02a8fce1de21d494a290d837275f42471eff4b2e"
   version = "v1.0"
+
+[[projects]]
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
+  version = "v0.0.2"
 
 [[projects]]
   name = "gopkg.in/ini.v1"
@@ -16,6 +28,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f14de016a6fda4a3dfb1d3d383962350432b224f5db331af2a5ac7ec1471902c"
+  inputs-digest = "b273dc15336bcf2715d1a6f66e6f8f201fea746a11d2fc31af68ed2c70619df8"
   solver-name = "gps-cdcl"
   solver-version = 1

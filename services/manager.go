@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"sync"
-
 	"time"
 
 	"github.com/gosuri/uitable"

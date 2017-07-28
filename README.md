@@ -5,11 +5,11 @@ Tool to manage your services
 `go get github.com/vetcher/easystarter`
 
 ## Command line arguments
-|Argument      |Description                                                                                                    |
-|:------------:|---------------------------------------------------------------------------------------------------------------|
-|`-config <path-to-env.ini>`  | path to `env.ini` file with environment variables.                                             |
-|`-filename <filename>`       | Use this file name instead of `Makefile` when start service.                                   |
-|`-s={true/false}`            | This flag means start all services after startup. Same as enter `start -all` after run program.|
+|Argument                         |Description                                                                                                     |
+|:-------------------------------:|----------------------------------------------------------------------------------------------------------------|
+|`-env <path-of-env.ini>`         | Path to file with environment variables. Default `env.ini`                                                     |
+|`-config <path-of-serices.json>` | File with services configuration. Default `services.json`                                                      |
+|`-s={true/false}`                | This flag means start all services after startup. Same as enter `start -all` after run program. Default `false`|
 
 ## Commands
 
@@ -24,10 +24,44 @@ Tool to manage your services
 | List environment   | `env`                     | Print environment variables from `env.ini` file or all. With flag `-reload` reloads environment from `env.ini` file                    | `-all` or `-reload`                                            |                                                                 |
 
 ## Usage
+1. Add `GOPATH` to your `PATH`.
+2. Create in `HOME` folder file `services.json` with [configuration](#service-configuration).
+3. Create in `HOME` folder file `env.ini` with [environment variables](#environment-configuration).
+4. Type `easystarter` in terminal and use it.
+
 Program creates `logs` folder if it does not exist yet.    
 Logs for each service writes to `./logs/<servicename>.log` file.    
 
 ## Service configuration
 You can specify services in file `services.json`, where you may set name, target Makefile with `install` _rule_, custom directory (absolute or relative) to service folder and command line arguments for service.    
 If `services.json` not in current directory, program use file from `$HOME` folder.    
-For file structure refer at `services.json` file in repository. __Field `target` required__.    
+For file structure refer at `services.json` file in repository. __Field `target` required__.
+#### Example
+Example/template for `services.json` file.
+```
+[
+  {
+    "name": "testing",
+    "target": "Makefile",
+    "dir": "",
+    "args": ["-duration", "3", "-x", "2"]
+  },
+  {
+    "name": "testing1",
+    "target": "path/to/makefile/inside/testing1/dir/Makefile",
+    "dir": "/home/vetcher/bin",
+    "args": ["-duration", "5", "-x", "10"]
+  }
+]
+```
+
+## Environment configuration
+You can add custom environment variables to `env.ini`, which will be added before service execution.
+It looks up for `env.ini` file in current directory. If there is no file, it open `env.ini` in `HOME` folder.
+
+#### Example
+Example/template for `env.ini` file.
+```
+GOPATH=/home/vetcher/go
+PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+```

@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/util"
 )
 
@@ -200,7 +201,7 @@ func (svc *goService) Info() *ServiceInfo {
 		status = "UP"
 	}
 	return &ServiceInfo{
-		Name:        svc.Name(),
+		Name:        glg.Cyan(svc.Name()),
 		Status:      status,
 		Args:        svc.Args,
 		StartupTime: svc.startTime,

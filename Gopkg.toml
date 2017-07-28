@@ -22,6 +22,10 @@
 
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/gosuri/uitable"
+
+[[constraint]]
   name = "github.com/kpango/glg"
   version = "1.0.0"
 
