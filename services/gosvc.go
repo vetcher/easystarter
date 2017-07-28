@@ -106,7 +106,7 @@ func (svc *goService) logInit() error {
 func (svc *goService) startService() error {
 	err := svc.externalCmd.Start()
 	if err != nil {
-		return fmt.Errorf("can't start service %v: %v.", svc.SvcName, err)
+		return fmt.Errorf("can't exec %s: %v", svc.SvcName, err)
 	}
 	svc.startTime = time.Now()
 	go svc.waitExecExit()

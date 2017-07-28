@@ -69,7 +69,9 @@ func (f *serviceManager) Start(svcName string) {
 	if err != nil {
 		glg.Errorf("Start %s error: %v", svcName, err)
 	} else {
-		glg.Infof("START %s", glg.Yellow(svcName))
+		if svc.IsRunning() {
+			glg.Infof("START %s", glg.Yellow(svcName))
+		}
 	}
 }
 

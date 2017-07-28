@@ -2,16 +2,12 @@ package main
 
 import (
 	"bufio"
-	"os"
-
-	"strings"
-
 	"flag"
-
-	"os/signal"
-	"syscall"
-
 	"fmt"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend"
@@ -36,6 +32,7 @@ const (
 	CMD_EXIT    = "exit"
 	CMD_VERSION = "version"
 	CMD_KILL    = "kill"
+	CMD_LOGS    = "logs"
 
 	EXIT_CODE_SETUP_ENV_ERR = 1 + iota
 	EXIT_CODE_INIT_LOGS_DIR_ERR
@@ -83,6 +80,7 @@ func main() {
 		CMD_EXIT:    &commands.ExitCommand{},
 		"":          &commands.EmptyCommand{},
 		CMD_KILL:    &commands.KillCommand{},
+		CMD_LOGS:    &commands.LogsCommand{},
 	}
 	flag.Parse()
 	go handleSignals()
@@ -109,7 +107,7 @@ func main() {
 				return
 			}
 		} else {
-			glg.Printf("`%v` is wrong command, try to `help`.", inputCommands[0])
+			glg.Printf("`%v` is wrong command", inputCommands[0])
 		}
 	}
 }
