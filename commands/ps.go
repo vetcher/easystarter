@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/kpango/glg"
-	"github.com/vetcher/easystarter/backend"
+	"github.com/vetcher/easystarter/services"
 )
 
 type PSCommand struct {
@@ -18,6 +18,6 @@ func (c *PSCommand) Validate(args ...string) error {
 }
 
 func (c *PSCommand) Exec(args ...string) error {
-	glg.Print(backend.ServicesString(c.allFlag))
+	glg.Print(services.ServiceManager.Info(c.allFlag))
 	return nil
 }

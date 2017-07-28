@@ -1,6 +1,14 @@
-{
-  "testing": {
+[
+  {
+    "name": "testing",
     "target": "Makefile",
-    "args": ["-duration", "3"]
+    "dir": "",
+    "args": ["-duration", "3", "-x", "10"]
+  },
+  {
+    "name": "testing1",
+    "target": "Makefile",
+    "dir": "",
+    "args": ["-duration", "3", "-x", "10"]
   }
-}
+]

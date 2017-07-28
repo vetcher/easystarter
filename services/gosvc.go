@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/util"
 )
 
@@ -62,12 +61,20 @@ func (svc *goService) Start() error {
 	if svc.IsRunning() {
 		return fmt.Errorf("service %v already in use", svc.SvcName)
 	} else {
-		err := svc.logInit()
+		svc.isRunning = true
+		err := svc.prepare()
 		if err != nil {
+			svc.isRunning = false
+			return fmt.Errorf("prepare error: %v", err)
+		}
+		err = svc.logInit()
+		if err != nil {
+			svc.isRunning = false
 			return fmt.Errorf("can't init logs: %v", err)
 		}
 		err = svc.startService()
 		if err != nil {
+			svc.isRunning = false
 			return fmt.Errorf("can't start service %v: %v", svc.SvcName, err)
 		}
 		// Now service really started
@@ -96,11 +103,20 @@ func (svc *goService) logInit() error {
 }
 
 func (svc *goService) startService() error {
+	err := svc.externalCmd.Start()
+	if err != nil {
+		return fmt.Errorf("can't start service %v: %v.", svc.SvcName, err)
+	}
+	svc.startTime = time.Now()
+	go svc.waitExecExit()
+	return nil
+}
+
+func (svc *goService) prepare() error {
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
 		return fmt.Errorf("GOPATH is empty")
 	}
-	svc.isRunning = true
 	svc.syncMutex.Lock()
 	svc.serviceSignalChannel = make(chan string)
 	svc.serviceErrorChannel = make(chan error)
@@ -111,13 +127,6 @@ func (svc *goService) startService() error {
 	}
 
 	svc.externalCmd = exec.Command(filepath.Join(gopath, "bin", svc.SvcName), runArgs...)
-	err := svc.externalCmd.Start()
-	if err != nil {
-		svc.isRunning = false
-		return fmt.Errorf("can't start service %v: %v.", svc.SvcName, err)
-	}
-	svc.startTime = time.Now()
-	go svc.waitExecExit()
 	return nil
 }
 
@@ -150,8 +159,10 @@ func (svc *goService) handleSignals() error {
 func (svc *goService) waitExecExit() {
 	err := svc.externalCmd.Wait()
 	if err != nil {
+		//println("err", err.Error(), svc.Name(), svc.IsRunning())
 		svc.serviceErrorChannel <- err
 	} else {
+		//println("ok", svc.Name(), svc.IsRunning())
 		svc.serviceSignalChannel <- OK_SIGNAL
 	}
 }
@@ -183,12 +194,17 @@ func (svc *goService) Kill() error {
 	return nil
 }
 
-func (svc *goService) String() string {
-	isRunningStr := "Down"
+func (svc *goService) Info() *ServiceInfo {
+	status := "DOWN"
 	if svc.IsRunning() {
-		isRunningStr = fmt.Sprintf("Up for %v", time.Since(svc.startTime))
+		status = "UP"
 	}
-	return fmt.Sprintf("%v\t%v\t%v", glg.Yellow(svc.SvcName), isRunningStr, svc.Args)
+	return &ServiceInfo{
+		Name:        svc.Name(),
+		Status:      status,
+		Args:        svc.Args,
+		StartupTime: svc.startTime,
+	}
 }
 
 func (svc *goService) Sync() {

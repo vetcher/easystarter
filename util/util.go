@@ -1,9 +1,8 @@
 package util
 
 import (
-	"os"
-
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/kpango/glg"
@@ -32,7 +31,7 @@ func (e *OverwriteError) Error() string {
 }
 
 func NewOverwriteError(a string) error {
-	return OverwriteError{
+	return &OverwriteError{
 		content: a,
 	}
 }
@@ -43,7 +42,7 @@ func ComposeErrors(errs []error) error {
 		for _, err := range errs {
 			strs = append(strs, err.Error())
 		}
-		return fmt.Errorf("%v", strings.Join(strs, "\n"))
+		return fmt.Errorf("many errors:\n%v", strings.Join(strs, "\n"))
 	}
 	return nil
 }

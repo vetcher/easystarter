@@ -1,5 +1,7 @@
 package services
 
+import "time"
+
 const (
 	OK_SIGNAL   = "ok"
 	STOP_SIGNAL = "stop"
@@ -12,7 +14,14 @@ type Service interface {
 	Start() error
 	Stop() error
 	Kill() error
-	String() string
+	Info() *ServiceInfo
 	Sync()
 	IsRunning() bool
+}
+
+type ServiceInfo struct {
+	Name        string
+	Status      string
+	StartupTime time.Time
+	Args        []string
 }

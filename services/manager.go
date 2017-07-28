@@ -2,11 +2,11 @@ package services
 
 import (
 	"fmt"
-
 	"sync"
 
-	"strings"
+	"time"
 
+	"github.com/gosuri/uitable"
 	"github.com/kpango/glg"
 )
 
@@ -24,6 +24,10 @@ func init() {
 	ServiceManager = &serviceManager{
 		repo: NewRepository(),
 	}
+	err := loadServices()
+	if err != nil {
+		glg.Fatalf("can't load services: %v", err)
+	}
 }
 
 func (f *serviceManager) RegisterService(config *ServiceConfig) error {
@@ -32,7 +36,8 @@ func (f *serviceManager) RegisterService(config *ServiceConfig) error {
 
 func (f *serviceManager) StartAllServices() {
 	for _, svcName := range f.repo.Names() {
-		go f.Start(svcName)
+		name := svcName
+		go f.Start(name)
 	}
 }
 
@@ -70,9 +75,10 @@ func (f *serviceManager) Start(svcName string) {
 func (f *serviceManager) StopAllServices() {
 	var wait sync.WaitGroup
 	for _, svcName := range f.repo.Names() {
+		name := svcName
 		wait.Add(1)
 		go func() {
-			f.Stop(svcName)
+			f.Stop(name)
 			wait.Done()
 		}()
 	}
@@ -85,13 +91,15 @@ func (f *serviceManager) Stop(svcName string) {
 		glg.Warnf("Stop %s error: %v", svcName, err)
 		return
 	}
-	err = svc.Stop()
-	if err != nil {
-		glg.Errorf("Stop %s error: %v", svcName, err)
-		return
+	if svc.IsRunning() {
+		err = svc.Stop()
+		if err != nil {
+			glg.Errorf("Stop %s error: %v", svcName, err)
+			return
+		}
+		svc.Sync()
+		glg.Infof("STOP %v", glg.Yellow(svcName))
 	}
-	svc.Sync()
-	glg.Infof("STOP %v", glg.Yellow(svcName))
 }
 
 func (f *serviceManager) Restart(svcName string) {
@@ -102,27 +110,62 @@ func (f *serviceManager) Restart(svcName string) {
 func (f *serviceManager) RestartAllServices() {
 	var wait sync.WaitGroup
 	for _, svcName := range f.repo.Names() {
+		name := svcName
 		wait.Add(1)
 		go func() {
-			f.Restart(svcName)
+			f.Restart(name)
 			wait.Done()
 		}()
 	}
 	wait.Wait()
 }
 
-func (f *serviceManager) String(allFlag bool) string {
-	var svcStrings []string
+func (f *serviceManager) Info(allFlag bool) string {
 	runningCount := 0
+	table := uitable.New()
+	now := time.Now()
 	for _, svc := range f.repo.services {
 		if svc.IsRunning() || allFlag {
 			if svc.IsRunning() {
 				runningCount++
 			}
-			svcStrings = append(svcStrings, svc.String())
+			info := svc.Info()
+			upFor := time.Duration(0)
+			if !info.StartupTime.IsZero() {
+				upFor = now.Sub(info.StartupTime)
+			}
+			table.AddRow(info.Name, info.Status, upFor, info.Args)
 		}
 	}
 
 	return fmt.Sprintf("In configuration %v services, %v is up\n%v",
-		len(f.repo.services), runningCount, strings.Join(svcStrings, "\n"))
+		len(f.repo.services), runningCount, table)
+}
+
+func (f *serviceManager) KillAllServices() {
+	var wait sync.WaitGroup
+	for _, svcName := range f.repo.Names() {
+		name := svcName
+		wait.Add(1)
+		go func() {
+			f.Kill(name)
+			wait.Done()
+		}()
+	}
+	wait.Wait()
+}
+
+func (f *serviceManager) Kill(svcName string) {
+	svc, err := f.repo.GetService(svcName)
+	if err != nil {
+		glg.Warnf("Kill %s error: %v", svcName, err)
+		return
+	}
+	err = svc.Kill()
+	if err != nil {
+		glg.Errorf("Kill %s error: %v", svcName, err)
+		return
+	}
+	svc.Sync()
+	glg.Infof("KILL %v", glg.Yellow(svcName))
 }

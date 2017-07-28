@@ -14,6 +14,7 @@ import (
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend"
 	"github.com/vetcher/easystarter/commands"
+	"github.com/vetcher/easystarter/services"
 )
 
 // TODO: specify service version
@@ -63,7 +64,7 @@ func handleSignals() {
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	for sig := range sigChan {
 		glg.Print("Stop all services")
-		backend.StopAllServicesAndSync()
+		services.ServiceManager.StopAllServices()
 		glg.Print("Terminate")
 		os.Exit(int(sig.(syscall.Signal)))
 	}
@@ -101,7 +102,7 @@ func main() {
 			}
 			err = command.Exec(inputCommands[1:]...)
 			if err != nil {
-				backend.StopAllServicesAndSync()
+				services.ServiceManager.StopAllServices()
 				glg.Error(err)
 				return
 			}

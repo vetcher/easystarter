@@ -8,7 +8,6 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/util"
 )
 
@@ -31,9 +30,6 @@ func validateConfig(config *ServiceConfig) (errArray []error) {
 	}
 	if config.Target == "" {
 		errArray = append(errArray, fmt.Errorf("field `target` is not provided for %v service", config.Name))
-	}
-	if config.Dir == "" {
-		errArray = append(errArray, fmt.Errorf("field `dir` is not provided for %v service", config.Name))
 	}
 	return
 }
@@ -81,8 +77,5 @@ func loadServices() error {
 }
 
 func init() {
-	err := loadServices()
-	if err != nil {
-		glg.Fatalf("can't load services: %v", err)
-	}
+
 }

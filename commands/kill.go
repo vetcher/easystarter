@@ -1,8 +1,6 @@
 package commands
 
-import (
-	"github.com/vetcher/easystarter/backend"
-)
+import "github.com/vetcher/easystarter/services"
 
 type KillCommand struct {
 	allFlag bool
@@ -18,9 +16,9 @@ func (c *KillCommand) Validate(args ...string) error {
 
 func (c *KillCommand) Exec(args ...string) error {
 	if c.allFlag {
-		backend.KillAllServices()
+		services.ServiceManager.KillAllServices()
 	} else {
-		backend.KillService(args[0])
+		services.ServiceManager.Kill(args[0])
 	}
 	return nil
 }

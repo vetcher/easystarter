@@ -43,6 +43,7 @@ func (f *ServiceRepository) registerService(config *ServiceConfig) (Service, err
 		SvcName: config.Name,
 		Dir:     config.Dir,
 		Target:  config.Target,
+		Args:    config.Args,
 	}
 	f.services[config.Name] = svc
 	return svc, err
