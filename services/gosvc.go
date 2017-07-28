@@ -201,7 +201,7 @@ func (svc *goService) Info() *ServiceInfo {
 		status = "UP"
 	}
 	return &ServiceInfo{
-		Name:        glg.Cyan(svc.Name()),
+		Name:        glg.Cyan(svc.SvcName),
 		Status:      status,
 		Args:        svc.Args,
 		StartupTime: svc.startTime,

@@ -22,8 +22,8 @@ const (
 var (
 	envFileName = flag.String("env", ENV_INI, "File with configuration parameters")
 
-	environment       *ini.File
-	globalEnvFilePath string
+	environment   *ini.File
+	globalEnvFile string
 )
 
 func init() {
@@ -31,7 +31,7 @@ func init() {
 	if err1 != nil {
 		glg.Fatalf("Can't get current user: %v", err1)
 	}
-	globalEnvFilePath = filepath.Join(usr.HomeDir, ENV_INI)
+	globalEnvFile = filepath.Join(usr.HomeDir, ENV_INI)
 }
 
 func CurrentEnvironmentString() string {
@@ -46,8 +46,7 @@ func AllEnvironmentString() string {
 	cmd := exec.Command("printenv")
 	s, err := cmd.Output()
 	if err != nil {
-		glg.Errorf("Can't print environment: %v", err)
-		return ""
+		return fmt.Errorf("Can't print environment: %v", err).Error()
 	}
 	return string(s)
 }
@@ -68,11 +67,11 @@ func SetupEnv() bool {
 }
 
 func CreateEnvFile() {
-	file, err := os.Create(globalEnvFilePath)
+	file, err := os.Create(globalEnvFile)
 	if err != nil {
-		glg.Warnf("Can't create file `%v`: %v.", globalEnvFilePath, err.Error())
+		glg.Warnf("Can't create file `%v`: %v.", globalEnvFile, err.Error())
 	}
-	glg.Printf("File `%v` was created.", glg.Green(globalEnvFilePath))
+	glg.Printf("File `%v` was created.", glg.Green(globalEnvFile))
 	glg.Print("You can add some environment variables.")
 	file.Close()
 }
@@ -81,13 +80,13 @@ func LoadEnv() (*ini.File, error) {
 	file, err := os.Open(*envFileName)
 	if err != nil {
 		// Lookup in home directory for configuration global env file
-		file, err = os.Open(globalEnvFilePath)
+		file, err = os.Open(globalEnvFile)
 		if err != nil {
 			CreateEnvFile()
 		} else {
 			file.Close()
 		}
-		envConfig, err := ini.Load(globalEnvFilePath)
+		envConfig, err := ini.Load(globalEnvFile)
 		if err != nil {
 			return nil, err
 		}

@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"strings"
+
 	"github.com/gosuri/uitable"
 	"github.com/kpango/glg"
 )
@@ -122,6 +124,7 @@ func (f *serviceManager) RestartAllServices() {
 func (f *serviceManager) Info(allFlag bool) string {
 	runningCount := 0
 	table := uitable.New()
+	table.AddRow(glg.White("Service"), "Status", "Up for", "Command line arguments")
 	now := time.Now()
 	for _, svc := range f.repo.services {
 		if svc.IsRunning() || allFlag {
@@ -133,12 +136,12 @@ func (f *serviceManager) Info(allFlag bool) string {
 			if !info.StartupTime.IsZero() {
 				upFor = now.Sub(info.StartupTime)
 			}
-			table.AddRow(info.Name, info.Status, upFor, info.Args)
+			table.AddRow(info.Name, info.Status, upFor, strings.Join(info.Args, " "))
 		}
 	}
 
 	return fmt.Sprintf("In configuration %v services, %v is up\n%v",
-		len(f.repo.services), runningCount, table)
+		len(f.repo.services), runningCount, table.String())
 }
 
 func (f *serviceManager) KillAllServices() {
