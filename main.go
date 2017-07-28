@@ -11,6 +11,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"fmt"
+
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend"
 	"github.com/vetcher/easystarter/commands"
@@ -90,7 +92,7 @@ func main() {
 		_ = allCommands[CMD_START].Exec("-all")
 	}
 	stdin := bufio.NewScanner(os.Stdin)
-	for stdin.Scan() {
+	for fmt.Print("->"); stdin.Scan(); fmt.Print("->") {
 		text := stdin.Text()
 		inputCommands := strings.Split(text, " ")
 		command, ok := allCommands[inputCommands[0]]
