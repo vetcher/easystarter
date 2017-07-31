@@ -21,7 +21,7 @@ func (c *EnvCommand) Validate(args ...string) error {
 	return nil
 }
 
-func (c *EnvCommand) Exec(args ...string) error {
+func (c *EnvCommand) Exec() error {
 	if c.allFlag {
 		glg.Info(backend.AllEnvironmentString())
 	} else if c.reloadFlag {

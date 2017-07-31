@@ -63,7 +63,7 @@ func handleSignals() {
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	for sig := range sigChan {
 		glg.Print("Stop all services")
-		services.ServiceManager.StopAllServices()
+		services.ServiceManager.Stop(services.ServiceManager.AllServicesNames()...)
 		glg.Print("Terminate")
 		os.Exit(int(sig.(syscall.Signal)))
 	}
@@ -87,7 +87,7 @@ func main() {
 	glg.Print(WelcomeTip)
 	if *isStartOnStartup {
 		_ = allCommands[CMD_START].Validate("-all")
-		_ = allCommands[CMD_START].Exec("-all")
+		_ = allCommands[CMD_START].Exec()
 	}
 	stdin := bufio.NewScanner(os.Stdin)
 	for fmt.Print("->"); stdin.Scan(); fmt.Print("->") {
@@ -100,9 +100,9 @@ func main() {
 				glg.Errorf("Validation error: %v", err)
 				continue
 			}
-			err = command.Exec(inputCommands[1:]...)
+			err = command.Exec()
 			if err != nil {
-				services.ServiceManager.StopAllServices()
+				services.ServiceManager.Stop(services.ServiceManager.AllServicesNames()...)
 				glg.Error(err)
 				return
 			}

@@ -17,7 +17,7 @@ func (c *PSCommand) Validate(args ...string) error {
 	return nil
 }
 
-func (c *PSCommand) Exec(args ...string) error {
+func (c *PSCommand) Exec() error {
 	glg.Print(services.ServiceManager.Info(c.allFlag))
 	return nil
 }

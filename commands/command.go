@@ -10,7 +10,7 @@ const (
 var AtLeastOneArgumentErr = errors.New("at least one argument should be specified")
 
 type Command interface {
-	Exec(args ...string) error
+	Exec() error
 	// always should run before call Exec
 	Validate(args ...string) error
 }
@@ -22,6 +22,6 @@ func (c *EmptyCommand) Validate(args ...string) error {
 	return nil
 }
 
-func (c *EmptyCommand) Exec(args ...string) error {
+func (c *EmptyCommand) Exec() error {
 	return nil
 }

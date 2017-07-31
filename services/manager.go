@@ -35,14 +35,14 @@ func (f *serviceManager) RegisterService(config *ServiceConfig) error {
 	return f.repo.RegisterService(config)
 }
 
-func (f *serviceManager) StartAllServices() {
-	for _, svcName := range f.repo.Names() {
+func (f *serviceManager) Start(svcNames ...string) {
+	for _, svcName := range svcNames {
 		name := svcName
-		go f.Start(name)
+		go f.start(name)
 	}
 }
 
-func (f *serviceManager) Start(svcName string) {
+func (f *serviceManager) start(svcName string) {
 	svc, err := f.repo.GetService(svcName)
 	if err != nil {
 		glg.Errorf("Start %s error: %v", svcName, err)
@@ -75,20 +75,20 @@ func (f *serviceManager) Start(svcName string) {
 	}
 }
 
-func (f *serviceManager) StopAllServices() {
-	var wait sync.WaitGroup
-	for _, svcName := range f.repo.Names() {
+func (f *serviceManager) Stop(svcNames ...string) {
+	var wg sync.WaitGroup
+	for _, svcName := range svcNames {
 		name := svcName
-		wait.Add(1)
+		wg.Add(1)
 		go func() {
-			f.Stop(name)
-			wait.Done()
+			f.stop(name)
+			wg.Done()
 		}()
 	}
-	wait.Wait()
+	wg.Wait()
 }
 
-func (f *serviceManager) Stop(svcName string) {
+func (f *serviceManager) stop(svcName string) {
 	svc, err := f.repo.GetService(svcName)
 	if err != nil {
 		glg.Warnf("Stop %s error: %v", svcName, err)
@@ -105,29 +105,26 @@ func (f *serviceManager) Stop(svcName string) {
 	}
 }
 
-func (f *serviceManager) Restart(svcName string) {
-	f.Stop(svcName)
-	f.Start(svcName)
-}
-
-func (f *serviceManager) RestartAllServices() {
-	var wait sync.WaitGroup
-	for _, svcName := range f.repo.Names() {
+func (f *serviceManager) Restart(svcNames ...string) {
+	var wg sync.WaitGroup
+	for _, svcName := range svcNames {
 		name := svcName
-		wait.Add(1)
+		wg.Add(1)
 		go func() {
-			f.Restart(name)
-			wait.Done()
+			f.stop(name)
+			f.start(name)
+			wg.Done()
 		}()
 	}
-	wait.Wait()
+	wg.Wait()
 }
 
 func (f *serviceManager) Info(allFlag bool) string {
 	runningCount := 0
 	table := uitable.New()
-	table.AddRow(glg.White("Service"), "Status", "Up for", "Command line arguments")
+	table.AddRow("#", glg.White("Service"), "Status", "Command line arguments")
 	now := time.Now()
+	i := 1
 	for _, svc := range f.repo.services {
 		if svc.IsRunning() || allFlag {
 			if svc.IsRunning() {
@@ -138,7 +135,8 @@ func (f *serviceManager) Info(allFlag bool) string {
 			if !info.StartupTime.IsZero() {
 				upFor = now.Sub(info.StartupTime)
 			}
-			table.AddRow(info.Name, info.Status, upFor, strings.Join(info.Args, " "))
+			table.AddRow(i, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()), strings.Join(info.Args, " "))
+			i += 1
 		}
 	}
 
@@ -146,20 +144,20 @@ func (f *serviceManager) Info(allFlag bool) string {
 		len(f.repo.services), runningCount, table.String())
 }
 
-func (f *serviceManager) KillAllServices() {
+func (f *serviceManager) Kill(svcNames ...string) {
 	var wait sync.WaitGroup
-	for _, svcName := range f.repo.Names() {
+	for _, svcName := range svcNames {
 		name := svcName
 		wait.Add(1)
 		go func() {
-			f.Kill(name)
+			f.kill(name)
 			wait.Done()
 		}()
 	}
 	wait.Wait()
 }
 
-func (f *serviceManager) Kill(svcName string) {
+func (f *serviceManager) kill(svcName string) {
 	svc, err := f.repo.GetService(svcName)
 	if err != nil {
 		glg.Warnf("Kill %s error: %v", svcName, err)
@@ -172,4 +170,12 @@ func (f *serviceManager) Kill(svcName string) {
 	}
 	svc.Sync()
 	glg.Infof("KILL %v", glg.Yellow(svcName))
+}
+
+func (f *serviceManager) AllServicesNames() []string {
+	return f.repo.Names()
+}
+
+func (f *serviceManager) PredictServiceName(str string) string {
+	return str
 }

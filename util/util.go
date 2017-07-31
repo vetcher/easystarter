@@ -46,3 +46,12 @@ func ComposeErrors(errs []error) error {
 	}
 	return nil
 }
+
+func StrInStrs(str string, strs []string) bool {
+	for _, s := range strs {
+		if s == str {
+			return true
+		}
+	}
+	return false
+}
