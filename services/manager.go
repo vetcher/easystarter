@@ -175,7 +175,3 @@ func (f *serviceManager) kill(svcName string) {
 func (f *serviceManager) AllServicesNames() []string {
 	return f.repo.Names()
 }
-
-func (f *serviceManager) PredictServiceName(str string) string {
-	return str
-}

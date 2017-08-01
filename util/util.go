@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"errors"
+
 	"github.com/kpango/glg"
 )
 
@@ -54,4 +56,13 @@ func StrInStrs(str string, strs []string) bool {
 		}
 	}
 	return false
+}
+
+func AutoCompleteString(completeThis string, predictFrom []string) (string, int, error) {
+	for i, str := range predictFrom {
+		if strings.HasPrefix(str, completeThis) {
+			return str, i, nil
+		}
+	}
+	return "", -1, errors.New("can't auto-complete")
 }

@@ -1,6 +1,11 @@
 package commands
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/vetcher/easystarter/services"
+	"github.com/vetcher/easystarter/util"
+)
 
 const (
 	ALL    string = "-all"
@@ -24,4 +29,19 @@ func (c *EmptyCommand) Validate(args ...string) error {
 
 func (c *EmptyCommand) Exec() error {
 	return nil
+}
+
+func CompleteNames(beforeStrs []string) []string {
+	var afterStrs []string
+	svcNames := services.ServiceManager.AllServicesNames()
+	for _, name := range beforeStrs {
+		completedName, position, err := util.AutoCompleteString(name, svcNames)
+		if err != nil {
+			afterStrs = append(afterStrs, name)
+		} else {
+			afterStrs = append(afterStrs, completedName)
+			svcNames = append(svcNames[:position], svcNames[position+1:]...)
+		}
+	}
+	return afterStrs
 }

@@ -18,7 +18,7 @@ func (c *StartCommand) Validate(args ...string) error {
 		if c.allFlag {
 			c.args = services.ServiceManager.AllServicesNames()
 		} else {
-			c.args = args
+			c.args = CompleteNames(args)
 		}
 		return nil
 	}
