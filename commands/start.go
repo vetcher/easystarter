@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/vetcher/easystarter/services"
 	"github.com/vetcher/easystarter/util"
 )
@@ -26,7 +24,6 @@ func (c *StartCommand) Validate(args ...string) error {
 }
 
 func (c *StartCommand) Exec() error {
-	fmt.Println(c.args)
 	services.ServiceManager.Start(c.args...)
 	return nil
 }

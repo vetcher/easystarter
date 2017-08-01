@@ -2,10 +2,9 @@ package services
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
-
-	"strings"
 
 	"github.com/gosuri/uitable"
 	"github.com/kpango/glg"
@@ -46,10 +45,16 @@ func (f *serviceManager) RegisterService(config *ServiceConfig) error {
 }
 
 func (f *serviceManager) Start(svcNames ...string) {
+	var wg sync.WaitGroup
 	for _, svcName := range svcNames {
 		name := svcName
-		go f.start(name)
+		wg.Add(1)
+		go func() {
+			f.start(name)
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 }
 
 func (f *serviceManager) start(svcName string) {
@@ -132,7 +137,7 @@ func (f *serviceManager) Restart(svcNames ...string) {
 func (f *serviceManager) Info(allFlag bool) string {
 	runningCount := 0
 	table := uitable.New()
-	table.MaxColWidth = 100
+	table.MaxColWidth = 60
 	table.Wrap = true
 	table.AddRow("#", glg.White("Service"), "Status", "Command line arguments")
 	now := time.Now()

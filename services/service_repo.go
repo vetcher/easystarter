@@ -2,8 +2,6 @@ package services
 
 import (
 	"fmt"
-
-	"github.com/vetcher/easystarter/util"
 )
 
 type ServiceRepository struct {
@@ -33,11 +31,11 @@ func (f *ServiceRepository) GetService(svcName string) (Service, error) {
 	}
 }
 
-func (f *ServiceRepository) registerService(config *ServiceConfig) (Service, error) {
+func (f *ServiceRepository) registerService(config *ServiceConfig) error {
 	var err error = nil
 	_, ok := f.services[config.Name]
 	if ok {
-		err = util.NewOverwriteError(fmt.Sprintf("overwrites %v", config.Name))
+		err = fmt.Errorf("overwrites %v", config.Name)
 	}
 	svc := &goService{
 		SvcName: config.Name,
@@ -46,10 +44,9 @@ func (f *ServiceRepository) registerService(config *ServiceConfig) (Service, err
 		Args:    config.Args,
 	}
 	f.services[config.Name] = svc
-	return svc, err
+	return err
 }
 
 func (f *ServiceRepository) RegisterService(config *ServiceConfig) error {
-	_, err := f.registerService(config)
-	return err
+	return f.registerService(config)
 }

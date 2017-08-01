@@ -1,11 +1,10 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
-
-	"errors"
 
 	"github.com/kpango/glg"
 )
@@ -22,20 +21,6 @@ func init() {
 
 func StartupDir() string {
 	return startupDir
-}
-
-type OverwriteError struct {
-	content string
-}
-
-func (e *OverwriteError) Error() string {
-	return e.content
-}
-
-func NewOverwriteError(a string) error {
-	return &OverwriteError{
-		content: a,
-	}
 }
 
 func ComposeErrors(errs []error) error {
