@@ -15,15 +15,15 @@ go get github.com/vetcher/easystarter
 
 ## Commands
 
-| Title              | Command   | Description                                                                                                                            | Parameters             | Other |
-|:-------------------|:----------|:---------------------------------------------------------------------------------------------------------------------------------------|:-----------------------|-------|
-| Exit               | `exit`    | Exit program                                                                                                                           |                        |       |
-| Start service      | `start`   | Start specified service or start all                                                                                                   | `-all` or service name |       |
-| Stop service       | `stop`    | Stop specified service or stop all (send `SIGTERM` signal)                                                                             | `-all` or service name |       |
-| Kill service       | `kill`    | Kill specified service or kill all                                                                                                     | `-all` or service name |       |
-| Restart service    | `restart` | Stop and start service.  If flag `-all` specified, program will reload configuration from `services.json` file before start services   | `-all` or service name |       |
-| List services      | `ps`      | Print all services, their args and status.                                                                                             | `-all`                 |       |
-| List environment   | `env`     | Print environment variables from `env.ini` file or all. With flag `-reload` reloads environment from `env.ini` file                    | `-all` or `-reload`    |       |
+| Title              | Command   | Description                                                                                                         | Parameters             | Other |
+|:-------------------|:----------|:--------------------------------------------------------------------------------------------------------------------|:-----------------------|-------|
+| Exit               | `exit`    | Exit program                                                                                                        |                        |       |
+| Start service      | `start`   | Start specified services or start all                                                                               | `-all` or service name |       |
+| Stop service       | `stop`    | Stop specified services or stop all (send `SIGTERM` signal)                                                         | `-all` or service name |       |
+| Kill service       | `kill`    | Kill specified services or kill all                                                                                 | `-all` or service name |       |
+| Restart service    | `restart` | Stop and start services.                                                                                            | `-all` or service name |       |
+| List services      | `ps`      | Print all services, their args and status.                                                                          | `-all`                 |       |
+| List environment   | `env`     | Print environment variables from `env.ini` file or all. With flag `-reload` reloads environment from `env.ini` file | `-all` or `-reload`    |       |
 
 ## Usage
 1. Add `GOPATH` to your `PATH`.
@@ -33,6 +33,7 @@ go get github.com/vetcher/easystarter
 
 Program creates `logs` folder in current directory if it does not exist yet.
 Logs for each service writes to `./logs/<service-name>.log` file.
+For services names app use some sort of auto-completion, you can specify only beginning of service name.
 
 ## Service configuration
 You can specify services in file `services.json`, where you may set name, target Makefile with `install` _rule_, custom directory (absolute or relative) to service folder and command line arguments for service.    
