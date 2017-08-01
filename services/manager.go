@@ -122,6 +122,8 @@ func (f *serviceManager) Restart(svcNames ...string) {
 func (f *serviceManager) Info(allFlag bool) string {
 	runningCount := 0
 	table := uitable.New()
+	table.MaxColWidth = 100
+	table.Wrap = true
 	table.AddRow("#", glg.White("Service"), "Status", "Command line arguments")
 	now := time.Now()
 	i := 1
