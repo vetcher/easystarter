@@ -13,8 +13,18 @@ import (
 
 const CANT_FIND_SERVICE = "Can't find service"
 
+type Manager interface {
+	RegisterService(config *ServiceConfig) error // Add new service to configuration.
+	Start(svcNames ...string)                    // Start services with specified names.
+	Stop(svcNames ...string)                     // Normal and safely stop services with specified names.
+	Restart(svcNames ...string)                  // Restart services with specified names.
+	Kill(svcNames ...string)                     // Fast and rude stop services with specified names.
+	Info(allFlag bool) string                    // Information about configured services.
+	AllServicesNames() []string                  // List of all services in configuration.
+}
+
 var (
-	ServiceManager *serviceManager
+	ServiceManager Manager
 )
 
 type serviceManager struct {

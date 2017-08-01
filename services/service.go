@@ -9,14 +9,14 @@ const (
 )
 
 type Service interface {
-	Name() string
-	Build() error
-	Start() error
-	Stop() error
-	Kill() error
-	Info() *ServiceInfo
-	Sync()
-	IsRunning() bool
+	Name() string       // Name of service. By this name manager provide operations.
+	Build() error       // All actions that should happened before run.
+	Start() error       // Start service.
+	Stop() error        // Normal stop service.
+	Kill() error        // Fast stop service.
+	Info() *ServiceInfo // General information about current service for `ps` command.
+	Sync()              // Sync service with command line. Should be called after Stop/Kill or before Start to prevent desync.
+	IsRunning() bool    // Check, is service is idling or working.
 }
 
 type ServiceInfo struct {

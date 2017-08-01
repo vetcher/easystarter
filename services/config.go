@@ -14,14 +14,14 @@ import (
 const SERVICES_JSON = "services.json"
 
 var (
-	configFile = flag.String("config", SERVICES_JSON, "Path to makefile of microservices inside Dir")
+	configFile = flag.String("config", SERVICES_JSON, "Path to configuration file with services parameters")
 )
 
 type ServiceConfig struct {
 	Name   string   `json:"name"`   // Name of service
-	Target string   `json:"target"` // Path to Makefile inside Dir
+	Target string   `json:"target"` // Path to Makefile inside Dir/Name/
 	Args   []string `json:"args"`   // Command line arguments for service
-	Dir    string   `json:"dir"`    // Full path to directory with microservice
+	Dir    string   `json:"dir"`    // Full path to directory with service
 }
 
 func validateConfig(config *ServiceConfig) (errArray []error) {
