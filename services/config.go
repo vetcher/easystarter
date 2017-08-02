@@ -18,10 +18,11 @@ var (
 )
 
 type ServiceConfig struct {
-	Name   string   `json:"name"`   // Name of service
-	Target string   `json:"target"` // Path to Makefile inside Dir/Name/
-	Args   []string `json:"args"`   // Command line arguments for service
-	Dir    string   `json:"dir"`    // Full path to directory with service
+	Name    string   `json:"name"`    // Name of service
+	Target  string   `json:"target"`  // Path to Makefile inside Dir/Name/
+	Args    []string `json:"args"`    // Command line arguments for service
+	Dir     string   `json:"dir"`     // Full path to directory with service
+	Version string   `json:"version"` // Git tag, which can be represented as semantic versioning http://semver.org/
 }
 
 func validateConfig(config *ServiceConfig) (errArray []error) {
@@ -56,7 +57,7 @@ func loadServicesConfiguration() ([]*ServiceConfig, error) {
 	return configs, nil
 }
 
-func loadServices() error {
+func LoadServices() error {
 	configs, err := loadServicesConfiguration()
 	if err != nil {
 		return fmt.Errorf("can't load services configuration: %v", err)

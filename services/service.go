@@ -10,6 +10,7 @@ const (
 
 type Service interface {
 	Name() string       // Name of service. By this name manager provide operations.
+	Prepare() error     // All what should be done first
 	Build() error       // All actions that should happened before run.
 	Start() error       // Start service.
 	Stop() error        // Normal stop service.
@@ -24,4 +25,6 @@ type ServiceInfo struct {
 	Status      string
 	StartupTime time.Time
 	Args        []string
+	Dir         string
+	Target      string
 }

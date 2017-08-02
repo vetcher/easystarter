@@ -51,3 +51,10 @@ func AutoCompleteString(completeThis string, predictFrom []string) (string, int,
 	}
 	return "", -1, errors.New("can't auto-complete")
 }
+
+func StringOrEmpty(str string) string {
+	if str == "" {
+		return "<empty>"
+	}
+	return str
+}

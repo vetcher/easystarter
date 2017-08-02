@@ -33,6 +33,7 @@ const (
 	CMD_VERSION = "version"
 	CMD_KILL    = "kill"
 	CMD_LOGS    = "logs"
+	CMD_CFG     = "cfg"
 
 	EXIT_CODE_SETUP_ENV_ERR = 1 + iota
 	EXIT_CODE_INIT_LOGS_DIR_ERR
@@ -81,6 +82,7 @@ func main() {
 		"":          &commands.EmptyCommand{},
 		CMD_KILL:    &commands.KillCommand{},
 		CMD_LOGS:    &commands.LogsCommand{},
+		CMD_CFG:     &commands.CfgCommand{},
 	}
 	flag.Parse()
 	go handleSignals()

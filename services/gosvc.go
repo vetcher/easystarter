@@ -38,29 +38,9 @@ func (svc *goService) Name() string {
 	return svc.SvcName
 }
 
-func (svc *goService) Build() error {
+func (svc *goService) Prepare() error {
 	if svc.IsRunning() {
-		return fmt.Errorf("service %v already in use", svc.SvcName)
-	} else {
-		buildCmd := exec.Command("make", "install", "-f", filepath.Join(svc.Target))
-		buildCmd.Stderr = os.Stderr
-		buildCmd.Stdout = os.Stdout
-		buildCmd.Dir = filepath.Join(svc.Dir, svc.SvcName)
-		err := buildCmd.Start()
-		if err != nil {
-			return fmt.Errorf("can't start build: %v", err)
-		}
-		err = buildCmd.Wait()
-		if err != nil {
-			return fmt.Errorf("can't finish build: %v", err)
-		}
-		return nil
-	}
-}
-
-func (svc *goService) Start() error {
-	if svc.IsRunning() {
-		return fmt.Errorf("service %v already in use", svc.SvcName)
+		return fmt.Errorf("%s: already in use", svc.SvcName)
 	} else {
 		svc.isRunning = true
 		err := svc.prepare()
@@ -73,19 +53,39 @@ func (svc *goService) Start() error {
 			svc.isRunning = false
 			return fmt.Errorf("can't init logs: %v", err)
 		}
-		err = svc.startService()
-		if err != nil {
-			svc.isRunning = false
-			return fmt.Errorf("can't start service %v: %v", svc.SvcName, err)
-		}
-		// Now service really started
-		go func() {
-			svc.handleSignals()
-			// Self cleaning because we are not pigs
-			svc.cleanService()
-		}()
 		return nil
 	}
+}
+
+func (svc *goService) Build() error {
+	buildCmd := exec.Command("make", "install", "-f", filepath.Join(svc.Target))
+	buildCmd.Stderr = os.Stderr
+	buildCmd.Stdout = os.Stdout
+	buildCmd.Dir = filepath.Join(svc.Dir, svc.SvcName)
+	err := buildCmd.Start()
+	if err != nil {
+		return fmt.Errorf("can't start build: %v", err)
+	}
+	err = buildCmd.Wait()
+	if err != nil {
+		return fmt.Errorf("can't finish build: %v", err)
+	}
+	return nil
+}
+
+func (svc *goService) Start() error {
+	err := svc.startService()
+	if err != nil {
+		svc.isRunning = false
+		return fmt.Errorf("%s: can't start service: %v", svc.SvcName, err)
+	}
+	// Now service really started
+	go func() {
+		svc.handleSignals()
+		// Self cleaning because we are not pigs
+		svc.cleanService()
+	}()
+	return nil
 }
 
 func (svc *goService) logInit() error {
@@ -160,10 +160,8 @@ func (svc *goService) handleSignals() error {
 func (svc *goService) waitExecExit() {
 	err := svc.externalCmd.Wait()
 	if err != nil {
-		//println("err", err.Error(), svc.Name(), svc.IsRunning())
 		svc.serviceErrorChannel <- err
 	} else {
-		//println("ok", svc.Name(), svc.IsRunning())
 		svc.serviceSignalChannel <- OK_SIGNAL
 	}
 }
@@ -205,6 +203,8 @@ func (svc *goService) Info() *ServiceInfo {
 		Status:      status,
 		Args:        svc.Args,
 		StartupTime: svc.startTime,
+		Dir:         svc.Dir,
+		Target:      svc.Target,
 	}
 }
 
