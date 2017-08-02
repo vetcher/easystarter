@@ -20,7 +20,7 @@ import (
 // TODO: open logs
 
 const (
-	VERSION          = "0.4"
+	VERSION          = "0.5"
 	WelcomeTip       = "Easy Starter " + VERSION
 	MKDIR_PERMISSION = 0777
 

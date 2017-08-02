@@ -1,10 +1,8 @@
 package services
 
 import (
-	"fmt"
-
 	"errors"
-
+	"fmt"
 	"os/exec"
 
 	"github.com/gosuri/uitable"
@@ -42,10 +40,13 @@ func (f *ServiceRepository) GetService(svcName string) (Service, error) {
 
 func (f *ServiceRepository) registerService(config *ServiceConfig) error {
 	svc := &goService{
-		SvcName: config.Name,
-		Dir:     config.Dir,
-		Target:  config.Target,
-		Args:    config.Args,
+		info: ServiceInfo{
+			Name:    config.Name,
+			Dir:     config.Dir,
+			Target:  config.Target,
+			Args:    config.Args,
+			Version: config.Version,
+		},
 	}
 	if service, ok := f.services[config.Name]; ok && service.IsRunning() {
 		return errors.New("service is running")
@@ -77,14 +78,16 @@ func (f *ServiceRepository) String() string {
 	}
 }
 
-func (f *ServiceRepository) SwitchVersion(svcName string) error {
-	svc, ok := f.services[svcName]
-	if !ok {
-		return fmt.Errorf("%s not in configuration", svcName)
-	}
-	info := svc.Info()
-	version := f.versions[svcName]
-	cmd := exec.Command("git", "checkout", version)
+func SwitchVersion(service Service) error {
+	info := service.Info()
+	cmd := exec.Command("git", "checkout", info.Version)
 	cmd.Dir = info.Dir
-	return nil
+	return cmd.Run()
+}
+
+func CallMakeDepGen(service Service) error {
+	info := service.Info()
+	cmd := exec.Command("make", "dep", "gen")
+	cmd.Dir = info.Dir
+	return cmd.Run()
 }

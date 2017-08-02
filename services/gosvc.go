@@ -14,34 +14,25 @@ import (
 )
 
 type goService struct {
-	// Имя сервиса
-	SvcName string
-	// Аргументы, которые будут переданы в сервис как параметры командной строки
-	Args []string
-	// Канал, принимающий сообщения для действий
-	serviceSignalChannel chan string
-	serviceErrorChannel  chan error
-	externalCmd          *exec.Cmd
-	// Отметка о старте
-	startTime time.Time
-	Target    string
-	Dir       string
-	isRunning bool
-	// Не даёт запустить новый сервис, если старый еще не закончил работу
-	// Не дает перезаписывать каналы и `externalCmd` поля
-	syncMutex sync.Mutex
-	// Для синхронизованной остановки и перезапуска сервисов
-	oneInstance sync.WaitGroup
+	info                 ServiceInfo    // Общая, описательная информация о сервисе
+	externalCmd          *exec.Cmd      // Внешняя команда: она является олицетворением сервиса в системе
+	serviceSignalChannel chan string    // Канал, пропускающий сообщения для действий
+	serviceErrorChannel  chan error     // Канал, пропускающий ошибки исполнения внешней команды
+	isRunning            bool           // Метка о состоянии сервиса
+	syncMutex            sync.Mutex     // Не дает перезаписывать каналы и `externalCmd` поля, не дает создавать новую cmd, пока старая запущена
+	oneInstance          sync.WaitGroup // Для синхронизованной остановки и перезапуска сервисов
+	logs                 *os.File       // Файл, куда писать логи
 }
 
 func (svc *goService) Name() string {
-	return svc.SvcName
+	return svc.info.Name
 }
 
 func (svc *goService) Prepare() error {
 	if svc.IsRunning() {
-		return fmt.Errorf("%s: already in use", svc.SvcName)
+		return fmt.Errorf("%s: already in use", svc.info.Name)
 	} else {
+		fmt.Fprintln(svc.logs, "preparing...")
 		svc.isRunning = true
 		err := svc.prepare()
 		if err != nil {
@@ -58,10 +49,11 @@ func (svc *goService) Prepare() error {
 }
 
 func (svc *goService) Build() error {
-	buildCmd := exec.Command("make", "install", "-f", filepath.Join(svc.Target))
-	buildCmd.Stderr = os.Stderr
-	buildCmd.Stdout = os.Stdout
-	buildCmd.Dir = filepath.Join(svc.Dir, svc.SvcName)
+	fmt.Fprintln(svc.logs, "building...")
+	buildCmd := exec.Command("make", "install", "-f", filepath.Join(svc.info.Target))
+	buildCmd.Stderr = svc.logs
+	buildCmd.Stdout = svc.logs
+	buildCmd.Dir = filepath.Join(svc.info.Dir, svc.info.Name)
 	err := buildCmd.Start()
 	if err != nil {
 		return fmt.Errorf("can't start build: %v", err)
@@ -74,10 +66,11 @@ func (svc *goService) Build() error {
 }
 
 func (svc *goService) Start() error {
+	fmt.Fprintln(svc.logs, "starting...")
 	err := svc.startService()
 	if err != nil {
 		svc.isRunning = false
-		return fmt.Errorf("%s: can't start service: %v", svc.SvcName, err)
+		return fmt.Errorf("%s: can't start service: %v", svc.info.Name, err)
 	}
 	// Now service really started
 	go func() {
@@ -89,16 +82,15 @@ func (svc *goService) Start() error {
 }
 
 func (svc *goService) logInit() error {
-	out, err := os.Create(filepath.Join(util.StartupDir(), "logs", fmt.Sprintf("%s.log", svc.SvcName)))
+	out, err := os.Create(filepath.Join(util.StartupDir(), "logs", fmt.Sprintf("%s.log", svc.info.Name)))
 	// Init log file and all output would write to file
 	// If init unsuccessful out will be written to Stdout and Stderr
 	if err != nil {
-		svc.externalCmd.Stdout = os.Stdout
-		svc.externalCmd.Stderr = os.Stderr
-		return fmt.Errorf("can't create %s.log file: %v", svc.SvcName, err)
+		return fmt.Errorf("can't create %s.log file: %v", svc.info.Name, err)
 	} else {
-		svc.externalCmd.Stdout = out
-		svc.externalCmd.Stderr = out
+		svc.logs = out
+		svc.externalCmd.Stdout = svc.logs
+		svc.externalCmd.Stderr = svc.logs
 		return nil
 	}
 }
@@ -106,9 +98,9 @@ func (svc *goService) logInit() error {
 func (svc *goService) startService() error {
 	err := svc.externalCmd.Start()
 	if err != nil {
-		return fmt.Errorf("can't exec %s: %v", svc.SvcName, err)
+		return fmt.Errorf("can't exec %s: %v", svc.info.Name, err)
 	}
-	svc.startTime = time.Now()
+	svc.info.StartupTime = time.Now()
 	go svc.waitExecExit()
 	return nil
 }
@@ -123,11 +115,11 @@ func (svc *goService) prepare() error {
 	svc.serviceErrorChannel = make(chan error)
 	svc.oneInstance.Add(1)
 	var runArgs []string
-	for _, arg := range svc.Args {
+	for _, arg := range svc.info.Args {
 		runArgs = append(runArgs, os.ExpandEnv(arg))
 	}
 
-	svc.externalCmd = exec.Command(filepath.Join(gopath, "bin", svc.SvcName), runArgs...)
+	svc.externalCmd = exec.Command(filepath.Join(gopath, "bin", svc.info.Name), runArgs...)
 	return nil
 }
 
@@ -141,18 +133,18 @@ func (svc *goService) handleSignals() error {
 			case KILL_SIGNAL:
 				err := svc.externalCmd.Process.Kill()
 				if err != nil {
-					return fmt.Errorf("service %v can't be killed: %v", svc.SvcName, err)
+					return fmt.Errorf("service %v can't be killed: %v", svc.info.Name, err)
 				}
 				return nil
 			case STOP_SIGNAL:
 				err := svc.externalCmd.Process.Signal(syscall.SIGTERM)
 				if err != nil {
-					return fmt.Errorf("service %v can't be stopped: %v", svc.SvcName, err)
+					return fmt.Errorf("service %v can't be stopped: %v", svc.info.Name, err)
 				}
 				return nil
 			}
 		case err := <-svc.serviceErrorChannel:
-			return fmt.Errorf("Service %v error:\n%v", svc.SvcName, err)
+			return fmt.Errorf("Service %v error:\n%v", svc.info.Name, err)
 		}
 	}
 }
@@ -167,12 +159,13 @@ func (svc *goService) waitExecExit() {
 }
 
 func (svc *goService) cleanService() {
+	fmt.Fprintln(svc.logs, "cleaning...")
 	close(svc.serviceSignalChannel)
 	close(svc.serviceErrorChannel)
 	svc.serviceSignalChannel = nil
 	svc.serviceErrorChannel = nil
 	svc.externalCmd = nil
-	svc.startTime = time.Time{}
+	svc.info.StartupTime = time.Time{}
 	svc.oneInstance.Done()
 	svc.syncMutex.Unlock()
 	svc.isRunning = false
@@ -199,17 +192,19 @@ func (svc *goService) Info() *ServiceInfo {
 		status = "UP"
 	}
 	return &ServiceInfo{
-		Name:        glg.Cyan(svc.SvcName),
+		Name:        glg.Cyan(svc.info.Name),
 		Status:      status,
-		Args:        svc.Args,
-		StartupTime: svc.startTime,
-		Dir:         svc.Dir,
-		Target:      svc.Target,
+		Args:        svc.info.Args,
+		StartupTime: svc.info.StartupTime,
+		Dir:         svc.info.Dir,
+		Target:      svc.info.Target,
+		Version:     svc.info.Version,
 	}
 }
 
-func (svc *goService) Sync() {
+func (svc *goService) Sync() error {
 	svc.oneInstance.Wait()
+	return nil
 }
 
 func (svc *goService) IsRunning() bool {

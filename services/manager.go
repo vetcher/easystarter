@@ -28,12 +28,80 @@ var (
 )
 
 type serviceManager struct {
-	repo *ServiceRepository
+	repo         *ServiceRepository
+	startSteps   []Step
+	stopSteps    []Step
+	killSteps    []Step
+	restartSteps []Step
 }
 
 func init() {
 	ServiceManager = &serviceManager{
 		repo: NewRepository(),
+		startSteps: []Step{
+			{
+				Name: "checkout",
+				Do:   SwitchVersion,
+			},
+			{
+				Name: "make",
+				Do:   CallMakeDepGen,
+			},
+			{
+				Name: "prepare",
+				Do:   Service.Prepare,
+			},
+			{
+				Name: "build",
+				Do:   Service.Build,
+			},
+			{
+				Name: "start",
+				Do:   Service.Start,
+			},
+		},
+		stopSteps: []Step{
+			{
+				Name: "stop",
+				Do:   Service.Stop,
+			},
+			{
+				Name: "build",
+				Do:   Service.Sync,
+			},
+		},
+		killSteps: []Step{
+			{
+				Name: "stop",
+				Do:   Service.Kill,
+			},
+			{
+				Name: "build",
+				Do:   Service.Sync,
+			},
+		},
+		restartSteps: []Step{
+			{
+				Name: "stop",
+				Do:   Service.Stop,
+			},
+			{
+				Name: "build",
+				Do:   Service.Sync,
+			},
+			{
+				Name: "prepare",
+				Do:   Service.Prepare,
+			},
+			{
+				Name: "build",
+				Do:   Service.Build,
+			},
+			{
+				Name: "start",
+				Do:   Service.Start,
+			},
+		},
 	}
 	err := LoadServices()
 	if err != nil {
@@ -63,24 +131,9 @@ func (f *serviceManager) start(svcName string) {
 	if err != nil {
 		glg.Errorf("%s start error: %v", svcName, err)
 	} else {
-		err := f.setupVersion(svc)
+		err = CallOneByOne(svc, f.startSteps...)
 		if err != nil {
-			glg.Errorf("%s: setup version error: %v", svcName, err)
-			return
-		}
-		err = svc.Prepare()
-		if err != nil {
-			glg.Errorf("%s: prepare error: %v", svcName, err)
-			return
-		}
-		err = svc.Build()
-		if err != nil {
-			glg.Errorf("%s: build error: %v", svcName, err)
-			return
-		}
-		err = svc.Start()
-		if err != nil {
-			glg.Errorf("%s: start error: %v", svcName, err)
+			glg.Errorf("%s: %v", svcName, err)
 		} else {
 			if svc.IsRunning() {
 				glg.Infof("START %s", glg.Yellow(svcName))
@@ -113,13 +166,12 @@ func (f *serviceManager) stop(svcName string) {
 		return
 	}
 	if svc.IsRunning() {
-		err = svc.Stop()
+		err = CallOneByOne(svc, f.stopSteps...)
 		if err != nil {
-			glg.Errorf("%s: stop error: %v", svcName, err)
-			return
+			glg.Errorf("%s: %v", svcName, err)
+		} else {
+			glg.Infof("STOP %v", glg.Yellow(svcName))
 		}
-		svc.Sync()
-		glg.Infof("STOP %v", glg.Yellow(svcName))
 	}
 }
 
@@ -129,12 +181,27 @@ func (f *serviceManager) Restart(svcNames ...string) {
 		name := svcName
 		wg.Add(1)
 		go func() {
-			f.stop(name)
-			f.start(name)
+			f.restart(name)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+}
+
+func (f *serviceManager) restart(svcName string) {
+	svc, err := f.repo.GetService(svcName)
+	if err != nil {
+		glg.Errorf("%s start error: %v", svcName, err)
+	} else {
+		err = CallOneByOne(svc, f.restartSteps...)
+		if err != nil {
+			glg.Errorf("%s: %v", svcName, err)
+		} else {
+			if svc.IsRunning() {
+				glg.Infof("START %s", glg.Yellow(svcName))
+			}
+		}
+	}
 }
 
 func (f *serviceManager) Info(allFlag bool) string {
@@ -183,13 +250,12 @@ func (f *serviceManager) kill(svcName string) {
 		glg.Warnf("%s: kill error: %v", svcName, err)
 		return
 	}
-	err = svc.Kill()
+	err = CallOneByOne(svc, f.killSteps...)
 	if err != nil {
-		glg.Errorf("%s: kill error: %v", svcName, err)
-		return
+		glg.Errorf("%s: %v", svcName, err)
+	} else {
+		glg.Infof("KILL %v", glg.Yellow(svcName))
 	}
-	svc.Sync()
-	glg.Infof("KILL %v", glg.Yellow(svcName))
 }
 
 func (f *serviceManager) AllServicesNames() []string {
