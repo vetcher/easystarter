@@ -3,7 +3,7 @@ Tool to manage your services
 
 ## Install
 ```
-go get github.com/vetcher/easystarter
+$ go get github.com/vetcher/easystarter
 ```
 
 ## Command line arguments
@@ -29,11 +29,11 @@ go get github.com/vetcher/easystarter
 1. Add `GOPATH` to your `PATH`.
 2. Create in `HOME` folder file `services.json` with [configuration](#service-configuration).
 3. Create in `HOME` folder file `env.ini` with [environment variables](#environment-configuration).
-4. Type `easystarter` in terminal and use it.
+4. Type `easystarter` in terminal and press Enter.
 
-Program creates `logs` folder in current directory if it does not exist yet.
-Logs for each service writes to `./logs/<service-name>.log` file.
-For services names app use some sort of auto-completion, you can specify only beginning of service name.
+Program creates `logs` folder in current directory if it does not exist yet.    
+Logs for each service writes to `./logs/<service-name>.log` file.    
+For services names app use some sort of auto-completion, so you can specify only beginning of service name.    
 
 ## Service configuration
 You can specify services in file `services.json`, where you may set name, target Makefile with `install` _rule_, custom directory (absolute or relative) to service folder and command line arguments for service.    
