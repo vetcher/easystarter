@@ -35,14 +35,14 @@ func init() {
 	serviceManager = &manager{
 		repo: NewRepository(),
 		startSteps: []Step{
-			{
-				Name: "checkout",
-				Do:   SwitchVersion,
-			},
-			{
-				Name: "make",
-				Do:   CallMakeDepGen,
-			},
+			//{
+			//	Name: "checkout",
+			//	Do:   SwitchVersion,
+			//},
+			//{
+			//	Name: "make",
+			//	Do:   CallMakeDepGen,
+			//},
 			{
 				Name: "prepare",
 				Do:   Service.Prepare,

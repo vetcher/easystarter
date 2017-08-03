@@ -28,7 +28,6 @@ func (c *PSCommand) Exec() error {
 }
 
 func printServices(allFlag bool) string {
-	runningCount := 0
 	table := uitable.New()
 	table.MaxColWidth = 60
 	table.Wrap = true
@@ -42,6 +41,6 @@ func printServices(allFlag bool) string {
 		table.AddRow(i, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()), strings.Join(info.Args, " "))
 	}
 
-	return fmt.Sprintf("In configuration %v services, %v is up\n%v",
-		len(<-services.ServeAllServicesNames()), runningCount, table.String())
+	return fmt.Sprintf("In configuration %v services\n%v",
+		len(<-services.ServeAllServicesNames()), table.String())
 }
