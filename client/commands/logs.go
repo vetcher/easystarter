@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	"github.com/kpango/glg"
-	"github.com/vetcher/easystarter/util"
+	"github.com/vetcher/easystarter/backend/util"
 )
 
 var (

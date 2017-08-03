@@ -3,8 +3,8 @@ package commands
 import (
 	"errors"
 
-	"github.com/vetcher/easystarter/services"
-	"github.com/vetcher/easystarter/util"
+	"github.com/vetcher/easystarter/backend/services"
+	"github.com/vetcher/easystarter/client/util"
 )
 
 const (
@@ -33,7 +33,7 @@ func (c *EmptyCommand) Exec() error {
 
 func CompleteNames(beforeStrs []string) []string {
 	var afterStrs []string
-	svcNames := services.ServiceManager.AllServicesNames()
+	svcNames := <-services.ServeAllServicesNames()
 	for _, name := range beforeStrs {
 		completedName, position, err := util.AutoCompleteString(name, svcNames)
 		if err != nil {

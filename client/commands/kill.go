@@ -1,8 +1,9 @@
 package commands
 
 import (
-	"github.com/vetcher/easystarter/services"
-	"github.com/vetcher/easystarter/util"
+	"github.com/kpango/glg"
+	"github.com/vetcher/easystarter/backend/services"
+	"github.com/vetcher/easystarter/client/util"
 )
 
 type KillCommand struct {
@@ -14,7 +15,7 @@ func (c *KillCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.allFlag = util.StrInStrs(ALL, args)
 		if c.allFlag {
-			c.args = services.ServiceManager.AllServicesNames()
+			c.args = <-services.ServeAllServicesNames()
 		} else {
 			c.args = CompleteNames(args)
 		}
@@ -24,6 +25,9 @@ func (c *KillCommand) Validate(args ...string) error {
 }
 
 func (c *KillCommand) Exec() error {
-	services.ServiceManager.Kill(c.args...)
+	err := <-services.ServeKillServices(c.args...)
+	if err != nil {
+		glg.Errorf("Kill error: %v", err)
+	}
 	return nil
 }
