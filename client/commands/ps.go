@@ -38,7 +38,7 @@ func printServices(allFlag bool) string {
 		if !info.StartupTime.IsZero() {
 			upFor = now.Sub(info.StartupTime)
 		}
-		table.AddRow(i, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()), strings.Join(info.Args, " "))
+		table.AddRow(i+1, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()), strings.Join(info.Args, " "))
 	}
 
 	return fmt.Sprintf("In configuration %v services\n%v",
