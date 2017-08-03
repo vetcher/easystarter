@@ -94,7 +94,7 @@ func main() {
 		_ = allCommands[CMD_START].Exec()
 	}
 	stdin := bufio.NewScanner(os.Stdin)
-	for fmt.Print("->"); stdin.Scan(); fmt.Print("->") {
+	for fmt.Print("-> "); stdin.Scan(); fmt.Print("-> ") {
 		text := stdin.Text()
 		inputCommands := strings.Split(text, " ")
 		command, ok := allCommands[inputCommands[0]]
