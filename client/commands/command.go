@@ -40,7 +40,7 @@ func CompleteNames(beforeStrs []string) []string {
 			afterStrs = append(afterStrs, name)
 		} else {
 			afterStrs = append(afterStrs, completedName)
-			svcNames = append(svcNames[:position], svcNames[position+1:]...)
+			svcNames = append(svcNames[:position], svcNames[position+1:]...) // remove from list
 		}
 	}
 	return afterStrs

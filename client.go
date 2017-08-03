@@ -90,6 +90,7 @@ func main() {
 	go handleSignals()
 	glg.Print(WelcomeTip)
 	if *isStartOnStartup {
+		glg.Print("start -all")
 		_ = allCommands[CMD_START].Validate("-all")
 		_ = allCommands[CMD_START].Exec()
 	}

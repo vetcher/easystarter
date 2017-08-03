@@ -36,13 +36,14 @@ func (c *CfgCommand) Exec() error {
 
 func (c *CfgCommand) configuration() string {
 	table := uitable.New()
+	table.MaxColWidth = 100
 	table.Wrap = true
 	infos := <-services.ServeServicesInfo(true)
 	for _, info := range infos {
 		table.AddRow("Service:", fmt.Sprintf("%s:%s", info.Name, info.Version))
 		table.AddRow("Dir:", util.StringOrEmpty(info.Dir))
-		table.AddRow("Args:", info.Args)
 		table.AddRow("Target:", util.StringOrEmpty(info.Target))
+		table.AddRow("Args:", info.Args)
 		table.AddRow("")
 	}
 	return table.String()

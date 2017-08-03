@@ -135,7 +135,7 @@ func (f *manager) start(svcName string) error {
 	if err != nil {
 		return fmt.Errorf("%s start error: %v", svcName, err)
 	}
-	err = CallOneByOne(svc, f.startSteps...)
+	err = CallStepByStep(svc, f.startSteps...)
 	if err != nil {
 		return fmt.Errorf("%s: %v", svcName, err)
 	}
@@ -172,7 +172,7 @@ func (f *manager) stop(svcName string) error {
 		return fmt.Errorf("%s: stop error: %v", svcName, err)
 	}
 	if svc.IsRunning() {
-		err = CallOneByOne(svc, f.stopSteps...)
+		err = CallStepByStep(svc, f.stopSteps...)
 		if err != nil {
 			return fmt.Errorf("%s: %v", svcName, err)
 		}
@@ -206,7 +206,7 @@ func (f *manager) restart(svcName string) error {
 	if err != nil {
 		return fmt.Errorf("%s start error: %v", svcName, err)
 	}
-	err = CallOneByOne(svc, f.restartSteps...)
+	err = CallStepByStep(svc, f.restartSteps...)
 	if err != nil {
 		return fmt.Errorf("%s: %v", svcName, err)
 	}
@@ -252,7 +252,7 @@ func (f *manager) kill(svcName string) error {
 	if err != nil {
 		return fmt.Errorf("%s: kill error: %v", svcName, err)
 	}
-	err = CallOneByOne(svc, f.killSteps...)
+	err = CallStepByStep(svc, f.killSteps...)
 	if err != nil {
 		return fmt.Errorf("%s: %v", svcName, err)
 	}

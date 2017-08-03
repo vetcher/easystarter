@@ -11,7 +11,7 @@ type Step struct {
 	Do   Action
 }
 
-func CallOneByOne(svc Service, states ...Step) error {
+func CallStepByStep(svc Service, states ...Step) error {
 	for _, state := range states {
 		err := state.Do(svc)
 		if err != nil {
