@@ -31,25 +31,25 @@ func (svc *goService) Name() string {
 func (svc *goService) Prepare() error {
 	if svc.IsRunning() {
 		return fmt.Errorf("%s: already in use", svc.info.Name)
-	} else {
-		fmt.Fprintln(svc.logs, "preparing...")
-		svc.isRunning = true
-		err := svc.prepare()
-		if err != nil {
-			svc.isRunning = false
-			return fmt.Errorf("prepare error: %v", err)
-		}
-		err = svc.logInit()
-		if err != nil {
-			svc.isRunning = false
-			return fmt.Errorf("can't init logs: %v", err)
-		}
-		return nil
 	}
+	fmt.Fprintln(svc.logs, svc.Name(), "preparing...")
+	svc.oneInstance.Wait()
+	svc.isRunning = true
+	err := svc.prepare()
+	if err != nil {
+		svc.isRunning = false
+		return fmt.Errorf("prepare error: %v", err)
+	}
+	err = svc.logInit()
+	if err != nil {
+		svc.isRunning = false
+		return fmt.Errorf("can't init logs: %v", err)
+	}
+	return nil
 }
 
 func (svc *goService) Build() error {
-	fmt.Fprintln(svc.logs, "building...")
+	fmt.Fprintln(svc.logs, svc.Name(), "building...")
 	buildCmd := exec.Command("make", "install", "-f", filepath.Join(svc.info.Target))
 	buildCmd.Stderr = svc.logs
 	buildCmd.Stdout = svc.logs
@@ -66,15 +66,18 @@ func (svc *goService) Build() error {
 }
 
 func (svc *goService) Start() error {
-	fmt.Fprintln(svc.logs, "starting...")
+	fmt.Fprintln(svc.logs, svc.Name(), "starting...")
 	err := svc.startService()
 	if err != nil {
-		svc.isRunning = false
+		svc.cleanService()
 		return fmt.Errorf("%s: can't start service: %v", svc.info.Name, err)
 	}
 	// Now service really started
 	go func() {
-		svc.handleSignals()
+		err := svc.handleSignals()
+		if err != nil {
+			fmt.Fprintf(svc.logs, "%s: handle signals error: %v\n", svc.Name(), err)
+		}
 		// Self cleaning because we are not pigs
 		svc.cleanService()
 	}()
@@ -82,17 +85,16 @@ func (svc *goService) Start() error {
 }
 
 func (svc *goService) logInit() error {
-	out, err := os.Create(filepath.Join(util.StartupDir(), "logs", fmt.Sprintf("%s.log", svc.info.Name)))
+	out, err := os.OpenFile(filepath.Join(util.StartupDir(), "logs", fmt.Sprintf("%s.log", svc.info.Name)), os.O_APPEND|os.O_WRONLY, 0600)
 	// Init log file and all output would write to file
 	// If init unsuccessful out will be written to Stdout and Stderr
 	if err != nil {
 		return fmt.Errorf("can't create %s.log file: %v", svc.info.Name, err)
-	} else {
-		svc.logs = out
-		svc.externalCmd.Stdout = svc.logs
-		svc.externalCmd.Stderr = svc.logs
-		return nil
 	}
+	svc.logs = out
+	svc.externalCmd.Stdout = svc.logs
+	svc.externalCmd.Stderr = svc.logs
+	return nil
 }
 
 func (svc *goService) startService() error {
@@ -133,18 +135,16 @@ func (svc *goService) handleSignals() error {
 			case KILL_SIGNAL:
 				err := svc.externalCmd.Process.Kill()
 				if err != nil {
-					return fmt.Errorf("service %v can't be killed: %v", svc.info.Name, err)
+					return fmt.Errorf("can't be killed: %v", err)
 				}
-				return nil
 			case STOP_SIGNAL:
 				err := svc.externalCmd.Process.Signal(syscall.SIGTERM)
 				if err != nil {
-					return fmt.Errorf("service %v can't be stopped: %v", svc.info.Name, err)
+					return fmt.Errorf("can't be stopped: %v", err)
 				}
-				return nil
 			}
 		case err := <-svc.serviceErrorChannel:
-			return fmt.Errorf("Service %v error:\n%v", svc.info.Name, err)
+			return fmt.Errorf("service error: %v", err)
 		}
 	}
 }
@@ -159,7 +159,7 @@ func (svc *goService) waitExecExit() {
 }
 
 func (svc *goService) cleanService() {
-	fmt.Fprintln(svc.logs, "cleaning...")
+	fmt.Fprintln(svc.logs, svc.Name(), "cleaning...")
 	close(svc.serviceSignalChannel)
 	close(svc.serviceErrorChannel)
 	svc.serviceSignalChannel = nil

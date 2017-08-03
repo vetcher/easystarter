@@ -38,8 +38,8 @@ func (c *CfgCommand) configuration() string {
 	table := uitable.New()
 	table.Wrap = true
 	infos := <-services.ServeServicesInfo(true)
-	for name, info := range infos {
-		table.AddRow("Service:", fmt.Sprintf("%s:%s", name, info.Version))
+	for _, info := range infos {
+		table.AddRow("Service:", fmt.Sprintf("%s:%s", info.Name, info.Version))
 		table.AddRow("Dir:", util.StringOrEmpty(info.Dir))
 		table.AddRow("Args:", info.Args)
 		table.AddRow("Target:", util.StringOrEmpty(info.Target))

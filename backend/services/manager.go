@@ -62,17 +62,17 @@ func init() {
 				Do:   Service.Stop,
 			},
 			{
-				Name: "build",
+				Name: "sync",
 				Do:   Service.Sync,
 			},
 		},
 		killSteps: []Step{
 			{
-				Name: "stop",
+				Name: "kill",
 				Do:   Service.Kill,
 			},
 			{
-				Name: "build",
+				Name: "sync",
 				Do:   Service.Sync,
 			},
 		},
@@ -82,7 +82,7 @@ func init() {
 				Do:   Service.Stop,
 			},
 			{
-				Name: "build",
+				Name: "sync",
 				Do:   Service.Sync,
 			},
 			{
@@ -140,7 +140,6 @@ func (f *manager) start(svcName string) error {
 		return fmt.Errorf("%s: %v", svcName, err)
 	}
 	if !svc.IsRunning() {
-		// todo: glg.Infof("START %s", glg.Yellow(svcName))
 		return fmt.Errorf("%s: service not started", svcName)
 	}
 	return nil
@@ -212,7 +211,6 @@ func (f *manager) restart(svcName string) error {
 		return fmt.Errorf("%s: %v", svcName, err)
 	}
 	if !svc.IsRunning() {
-		//todo: glg.Infof("START %s", glg.Yellow(svcName))
 		return fmt.Errorf("%s: service not started", svcName)
 	}
 	return nil
@@ -256,9 +254,8 @@ func (f *manager) kill(svcName string) error {
 	}
 	err = CallOneByOne(svc, f.killSteps...)
 	if err != nil {
-		fmt.Errorf("%s: %v", svcName, err)
+		return fmt.Errorf("%s: %v", svcName, err)
 	}
-	// TODO: glg.Infof("KILL %v", glg.Yellow(svcName))
 	return nil
 }
 
