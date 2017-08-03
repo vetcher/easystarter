@@ -1,8 +1,9 @@
 package commands
 
 import (
-	"github.com/vetcher/easystarter/services"
-	"github.com/vetcher/easystarter/util"
+	"github.com/vetcher/easystarter/backend/services"
+	"github.com/vetcher/easystarter/client/util"
+	"github.com/kpango/glg"
 )
 
 type StopCommand struct {
@@ -14,7 +15,7 @@ func (c *StopCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.allFlag = util.StrInStrs(ALL, args)
 		if c.allFlag {
-			c.args = services.ServiceManager.AllServicesNames()
+			c.args = <-services.ServeAllServicesNames()
 		} else {
 			c.args = CompleteNames(args)
 		}
@@ -24,6 +25,9 @@ func (c *StopCommand) Validate(args ...string) error {
 }
 
 func (c *StopCommand) Exec() error {
-	services.ServiceManager.Stop(c.args...)
+	err := <-services.ServeStopServices(c.args...)
+	if err != nil {
+		glg.Errorf("Start error: %v", err)
+	}
 	return nil
 }

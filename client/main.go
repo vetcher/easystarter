@@ -10,9 +10,8 @@ import (
 	"syscall"
 
 	"github.com/kpango/glg"
-	"github.com/vetcher/easystarter/backend"
-	"github.com/vetcher/easystarter/commands"
-	"github.com/vetcher/easystarter/services"
+	"github.com/vetcher/easystarter/backend/services"
+	"github.com/vetcher/easystarter/client/commands"
 )
 
 // TODO: specify service version
@@ -44,8 +43,8 @@ var (
 )
 
 func init() {
-	if !backend.SetupEnv() {
-		glg.Fatal("I'm out, can't setup env")
+	if err := <-services.ServeReloadEnv(); err != nil {
+		glg.Fatalf("Exit, can't setup env: %v", err)
 		os.Exit(EXIT_CODE_SETUP_ENV_ERR)
 	}
 	_, err := os.Stat("logs")
@@ -64,7 +63,10 @@ func handleSignals() {
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	for sig := range sigChan {
 		glg.Print("Stop all services")
-		services.ServiceManager.Stop(services.ServiceManager.AllServicesNames()...)
+		err := <-services.ServeStopServices(<-services.ServeAllServicesNames()...)
+		if err != nil {
+			glg.Error(err)
+		}
 		glg.Print("Terminate")
 		os.Exit(int(sig.(syscall.Signal)))
 	}
@@ -104,7 +106,10 @@ func main() {
 			}
 			err = command.Exec()
 			if err != nil {
-				services.ServiceManager.Stop(services.ServiceManager.AllServicesNames()...)
+				err1 := <-services.ServeStopServices(<-services.ServeAllServicesNames()...)
+				if err1 != nil {
+					glg.Error(err1)
+				}
 				glg.Error(err)
 				return
 			}

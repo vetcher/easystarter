@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/vetcher/easystarter/util"
+	"github.com/vetcher/easystarter/backend/util"
 )
 
 const SERVICES_JSON = "services.json"
@@ -57,7 +57,7 @@ func loadServicesConfiguration() ([]*ServiceConfig, error) {
 	return configs, nil
 }
 
-func LoadServices() error {
+func loadServices() error {
 	configs, err := loadServicesConfiguration()
 	if err != nil {
 		return fmt.Errorf("can't load services configuration: %v", err)
@@ -68,7 +68,7 @@ func LoadServices() error {
 		if len(errs) > 0 {
 			configurationErrors = append(configurationErrors, errs...)
 		} else {
-			err := ServiceManager.RegisterService(config)
+			err := serviceManager.RegisterService(config)
 			if err != nil {
 				configurationErrors = append(configurationErrors, err)
 			}

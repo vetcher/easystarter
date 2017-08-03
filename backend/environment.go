@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
-
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/kpango/glg"
 	"gopkg.in/ini.v1"
@@ -34,55 +33,55 @@ func init() {
 	globalEnvFile = filepath.Join(usr.HomeDir, ENV_INI)
 }
 
-func CurrentEnvironmentString() string {
-	formattedStr := []string{""}
+func CurrentEnvironmentString() []string {
+	var formattedStr []string
 	for _, key := range environment.Section(ENV_SECTION).Keys() {
 		formattedStr = append(formattedStr, fmt.Sprintf("%v=%v", key.Name(), key.Value()))
 	}
-	return strings.Join(formattedStr, "\n")
+	return formattedStr
 }
 
-func AllEnvironmentString() string {
+func AllEnvironmentString() ([]string, error) {
 	cmd := exec.Command("printenv")
 	s, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("Can't print environment: %v", err).Error()
+		return []string{}, fmt.Errorf("can't print environment: %v", err)
 	}
-	return string(s)
+	return strings.Split(string(s), "\n"), nil
 }
 
-func SetupEnv() bool {
+func setupEnv() error {
 	var err error
-	environment, err = LoadEnv()
+	environment, err = loadEnv()
 	if err != nil {
-		glg.Warnf("Can't load environment: %v", err)
-		return false
+		return fmt.Errorf("can't setup environment: %v", err)
 	}
-	err = ExpandEnv(environment)
+	err = expandEnv(environment)
 	if err != nil {
-		glg.Errorf("%v", err)
-		return false
+		return fmt.Errorf("%v", err)
 	}
-	return true
+	return nil
 }
 
-func CreateEnvFile() {
+func createEnvFile() error {
 	file, err := os.Create(globalEnvFile)
 	if err != nil {
-		glg.Warnf("Can't create file `%v`: %v.", globalEnvFile, err.Error())
+		return fmt.Errorf("can't create file `%s`: %v.", globalEnvFile, err)
 	}
-	glg.Printf("File `%v` was created.", glg.Green(globalEnvFile))
-	glg.Print("You can add some environment variables.")
 	file.Close()
+	return nil
 }
 
-func LoadEnv() (*ini.File, error) {
+func loadEnv() (*ini.File, error) {
 	file, err := os.Open(*envFileName)
 	if err != nil {
 		// Lookup in home directory for configuration global env file
 		file, err = os.Open(globalEnvFile)
 		if err != nil {
-			CreateEnvFile()
+			err := createEnvFile()
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			file.Close()
 		}
@@ -101,7 +100,7 @@ func LoadEnv() (*ini.File, error) {
 	return envConfig, nil
 }
 
-func ExpandEnv(cfg *ini.File) error {
+func expandEnv(cfg *ini.File) error {
 	keys := cfg.Section("").Keys()
 	var err error
 	for _, key := range keys {
@@ -114,6 +113,13 @@ func ExpandEnv(cfg *ini.File) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func ReloadEnvironment() error {
+	if err := setupEnv(); err != nil {
+		return fmt.Errorf("can't load environment: %v", err)
 	}
 	return nil
 }

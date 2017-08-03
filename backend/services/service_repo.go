@@ -4,20 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-
-	"github.com/gosuri/uitable"
-	"github.com/vetcher/easystarter/util"
 )
 
 type ServiceRepository struct {
 	services map[string]Service
-	versions map[string]string
 }
 
 func NewRepository() *ServiceRepository {
 	return &ServiceRepository{
 		services: make(map[string]Service),
-		versions: make(map[string]string),
 	}
 }
 
@@ -58,24 +53,6 @@ func (f *ServiceRepository) registerService(config *ServiceConfig) error {
 
 func (f *ServiceRepository) RegisterService(config *ServiceConfig) error {
 	return f.registerService(config)
-}
-
-func (f *ServiceRepository) String() string {
-	if f.services != nil {
-		table := uitable.New()
-		table.Wrap = true
-		for name, svc := range f.services {
-			info := svc.Info()
-			table.AddRow("Service:", fmt.Sprintf("%s:%s", name, f.versions[name]))
-			table.AddRow("Dir:", util.StringOrEmpty(info.Dir))
-			table.AddRow("Args:", info.Args)
-			table.AddRow("Target:", util.StringOrEmpty(info.Target))
-			table.AddRow("")
-		}
-		return table.String()
-	} else {
-		return ""
-	}
 }
 
 func SwitchVersion(service Service) error {
