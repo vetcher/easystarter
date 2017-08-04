@@ -16,7 +16,6 @@ import (
 
 // TODO: specify service version
 // TODO: add cleaning command
-// TODO: open logs
 
 const (
 	VERSION          = "0.6"
@@ -58,12 +57,13 @@ func init() {
 	}
 }
 
-func handleSignals() {
+func handleSignals(stopCommand commands.Command) {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	for sig := range sigChan {
 		glg.Print("Stop all services")
-		err := <-services.ServeStopServices(<-services.ServeAllServicesNames()...)
+		_ = stopCommand.Validate("-all")
+		err := stopCommand.Exec()
 		if err != nil {
 			glg.Error(err)
 		}
@@ -87,7 +87,7 @@ func main() {
 		CMD_CFG:     &commands.CfgCommand{},
 	}
 	flag.Parse()
-	go handleSignals()
+	go handleSignals(allCommands[CMD_STOP])
 	glg.Print(WelcomeTip)
 	if *isStartOnStartup {
 		glg.Print("start -all")
@@ -107,7 +107,8 @@ func main() {
 			}
 			err = command.Exec()
 			if err != nil {
-				err1 := <-services.ServeStopServices(<-services.ServeAllServicesNames()...)
+				_ = allCommands[CMD_STOP].Validate("-all")
+				err1 := allCommands[CMD_STOP].Exec()
 				if err1 != nil {
 					glg.Error(err1)
 				}

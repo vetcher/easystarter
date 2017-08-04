@@ -12,21 +12,41 @@ import (
 type CfgCommand struct {
 	allFlag    bool
 	reloadFlag bool
+	svcNames   []string
 }
 
 func (c *CfgCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.reloadFlag = util.StrInStrs(RELOAD, args)
-		return nil
+		c.allFlag = util.StrInStrs(ALL, args)
+		switch {
+		case c.allFlag:
+			return nil
+		case c.reloadFlag:
+			pos := util.IndexStrInStrs(RELOAD, args)
+			args[pos] = args[len(args)-1]
+			c.svcNames = args[:len(args)-1]
+		}
+		if c.allFlag {
+			return nil
+		}
+
 	}
 	return nil
 }
 
 func (c *CfgCommand) Exec() error {
 	if c.reloadFlag {
-		err := <-services.ServeLoadServices()
-		if err != nil {
-			glg.Errorf("Reload config error: %v", err)
+		if c.allFlag {
+			err := <-services.ServeLoadAllServices()
+			if err != nil {
+				glg.Errorf("Reload config error: %v", err)
+			}
+		} else {
+			err := <-services.ServeLoadServices(c.svcNames...)
+			if err != nil {
+				glg.Errorf("Reload config error: %v", err)
+			}
 		}
 		glg.Success("Reload config: OK")
 	}

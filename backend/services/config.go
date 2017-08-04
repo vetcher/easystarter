@@ -35,30 +35,54 @@ func validateConfig(config *ServiceConfig) (errArray []error) {
 	return
 }
 
-func loadServicesConfiguration() ([]*ServiceConfig, error) {
-	var configs []*ServiceConfig
-	raw, err := ioutil.ReadFile(*configFile)
+func loadAllConfigsFrom(fileName string) ([]*ServiceConfig, error) {
+	var allConfigs []*ServiceConfig
+	raw, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		// Lookup in home directory for configuration SERVICES_JSON file
+		return nil, fmt.Errorf("can't read %s: %v", fileName, err)
+	}
+	err = json.Unmarshal(raw, &allConfigs)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal %s: %v", fileName, err)
+	}
+	return allConfigs, nil
+}
+
+func loadServicesConfiguration(allFlag bool, serviceNames []string) ([]*ServiceConfig, error) {
+	allConfigs, err := loadAllConfigsFrom(*configFile)
+	if err != nil {
 		usr, err1 := user.Current()
 		if err1 != nil {
 			return nil, fmt.Errorf("can't get current user: %v", err1)
 		}
-		raw1, err1 := ioutil.ReadFile(filepath.Join(usr.HomeDir, SERVICES_JSON))
+		allConfigs, err1 = loadAllConfigsFrom(filepath.Join(usr.HomeDir, SERVICES_JSON))
 		if err1 != nil {
 			return nil, err
 		}
-		raw = raw1
 	}
-	err = json.Unmarshal(raw, &configs)
-	if err != nil {
-		return nil, err
+	if allFlag {
+		return allConfigs, nil
+	}
+	var configs []*ServiceConfig
+	for _, name := range serviceNames {
+		if cfg := findConfigInConfigsByName(name, allConfigs); cfg != nil {
+			configs = append(configs, cfg)
+		}
 	}
 	return configs, nil
 }
 
-func loadServices() error {
-	configs, err := loadServicesConfiguration()
+func findConfigInConfigsByName(name string, configs []*ServiceConfig) *ServiceConfig {
+	for _, cfg := range configs {
+		if cfg.Name == name {
+			return cfg
+		}
+	}
+	return nil
+}
+
+func loadServicesConfigurations(allFlag bool, svcNames []string) error {
+	configs, err := loadServicesConfiguration(allFlag, svcNames)
 	if err != nil {
 		return fmt.Errorf("can't load services configuration: %v", err)
 	}

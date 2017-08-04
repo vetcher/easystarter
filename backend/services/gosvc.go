@@ -32,7 +32,6 @@ func (svc *goService) Prepare() error {
 	if svc.IsRunning() {
 		return fmt.Errorf("%s: already in use", svc.info.Name)
 	}
-	fmt.Fprintln(svc.logs, svc.Name(), "preparing...")
 	svc.oneInstance.Wait()
 	svc.isRunning = true
 	err := svc.prepare()
@@ -45,6 +44,7 @@ func (svc *goService) Prepare() error {
 		svc.isRunning = false
 		return fmt.Errorf("can't init logs: %v", err)
 	}
+	fmt.Fprintln(svc.logs, svc.Name(), "preparing...")
 	return nil
 }
 
@@ -150,6 +150,8 @@ func (svc *goService) handleSignals() error {
 }
 
 func (svc *goService) waitExecExit() {
+	svc.oneInstance.Add(1)
+	defer svc.oneInstance.Done()
 	err := svc.externalCmd.Wait()
 	if err != nil {
 		svc.serviceErrorChannel <- err
@@ -160,13 +162,15 @@ func (svc *goService) waitExecExit() {
 
 func (svc *goService) cleanService() {
 	fmt.Fprintln(svc.logs, svc.Name(), "cleaning...")
+	svc.oneInstance.Done()
+	svc.oneInstance.Wait()
 	close(svc.serviceSignalChannel)
 	close(svc.serviceErrorChannel)
 	svc.serviceSignalChannel = nil
 	svc.serviceErrorChannel = nil
+	svc.logs.Close()
 	svc.externalCmd = nil
 	svc.info.StartupTime = time.Time{}
-	svc.oneInstance.Done()
 	svc.syncMutex.Unlock()
 	svc.isRunning = false
 	// Now service really stopped

@@ -99,7 +99,7 @@ func init() {
 			},
 		},
 	}
-	err := loadServices()
+	err := loadServicesConfigurations(true, nil)
 	if err != nil {
 		glg.Fatalf("can't load services: %v", err)
 	}

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gosuri/uitable"
@@ -31,14 +30,14 @@ func printServices(allFlag bool) string {
 	table := uitable.New()
 	table.MaxColWidth = 60
 	table.Wrap = true
-	table.AddRow("#", glg.White("Service"), "Status", "Command line arguments")
+	table.AddRow("#", glg.White("Service"), "Status")
 	now := time.Now()
 	for i, info := range <-services.ServeServicesInfo(allFlag) {
 		upFor := time.Duration(0)
 		if !info.StartupTime.IsZero() {
 			upFor = now.Sub(info.StartupTime)
 		}
-		table.AddRow(i+1, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()), strings.Join(info.Args, " "))
+		table.AddRow(i+1, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()))
 	}
 
 	return fmt.Sprintf("In configuration %v services\n%v",

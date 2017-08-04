@@ -72,8 +72,17 @@ func ServeRestartServices(svcNames ...string) <-chan error {
 	return respChan
 }
 
-func ServeLoadServices() <-chan error {
-	err := loadServices()
+func ServeLoadAllServices() <-chan error {
+	err := loadServicesConfigurations(true, nil)
+	respChan := make(chan error, 1)
+	go func() {
+		respChan <- err
+	}()
+	return respChan
+}
+
+func ServeLoadServices(svcNames ...string) <-chan error {
+	err := loadServicesConfigurations(false, svcNames)
 	respChan := make(chan error, 1)
 	go func() {
 		respChan <- err

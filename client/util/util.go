@@ -29,3 +29,12 @@ func StrInStrs(str string, strs []string) bool {
 	}
 	return false
 }
+
+func IndexStrInStrs(str string, strs []string) int {
+	for i, s := range strs {
+		if s == str {
+			return i
+		}
+	}
+	return -1
+}
