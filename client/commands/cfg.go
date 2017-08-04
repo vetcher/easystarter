@@ -19,18 +19,11 @@ func (c *CfgCommand) Validate(args ...string) error {
 	if len(args) > 0 {
 		c.reloadFlag = util.StrInStrs(RELOAD, args)
 		c.allFlag = util.StrInStrs(ALL, args)
-		switch {
-		case c.allFlag:
-			return nil
-		case c.reloadFlag:
+		if c.reloadFlag {
 			pos := util.IndexStrInStrs(RELOAD, args)
 			args[pos] = args[len(args)-1]
 			c.svcNames = args[:len(args)-1]
 		}
-		if c.allFlag {
-			return nil
-		}
-
 	}
 	return nil
 }
