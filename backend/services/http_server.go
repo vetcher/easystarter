@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 
+	"os"
+
 	"github.com/vetcher/easystarter/backend"
 )
 
@@ -123,5 +125,6 @@ func StopServer(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, err)
 		return
 	}
-	fmt.Fprint(w, "OK")
+	log.Println("Stop")
+	os.Exit(0)
 }
