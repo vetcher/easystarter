@@ -27,7 +27,7 @@ func (c *StopCommand) Validate(args ...string) error {
 func (c *StopCommand) Exec() error {
 	err := <-services.ServeStopServices(c.args...)
 	if err != nil {
-		glg.Errorf("Start error: %v", err)
+		glg.Errorf("Stop error: %v", err)
 	}
 	return nil
 }

@@ -45,7 +45,7 @@ func HandleServicesInfo(input []byte) interface{} {
 	return serviceManager.Info(allFlag)
 }
 
-func HandleReloadEnv(input []byte) interface{} {
+func HandleReloadEnv(_ []byte) interface{} {
 	return backend.ReloadEnvironment()
 }
 
@@ -100,7 +100,7 @@ func HandleRestartServices(input []byte) interface{} {
 	return serviceManager.Restart(svcNames...)
 }
 
-func HandleLoadAllServices(input []byte) interface{} {
+func HandleLoadAllServices(_ []byte) interface{} {
 	return loadServicesConfigurations(true, nil)
 }
 
@@ -113,6 +113,15 @@ func HandleLoadServices(input []byte) interface{} {
 	return loadServicesConfigurations(false, svcNames)
 }
 
-func HandleAllServicesNames(input []byte) interface{} {
+func HandleAllServicesNames(_ []byte) interface{} {
 	return serviceManager.AllServicesNames()
+}
+
+func StopServer(w http.ResponseWriter, _ *http.Request) {
+	err := serviceManager.Stop(serviceManager.AllServicesNames()...)
+	if err != nil {
+		fmt.Fprint(w, err)
+		return
+	}
+	fmt.Fprint(w, "OK")
 }
