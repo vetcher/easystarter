@@ -58,17 +58,24 @@ func init() {
 }
 
 func handleSignals(stopCommand commands.Command) {
+	isTerminating := false
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	for sig := range sigChan {
-		glg.Print("Stop all services")
-		_ = stopCommand.Validate("-all")
-		err := stopCommand.Exec()
-		if err != nil {
-			glg.Error(err)
+		if isTerminating {
+			os.Exit(2)
 		}
-		glg.Print("Terminate")
-		os.Exit(int(sig.(syscall.Signal)))
+		go func() {
+			isTerminating = true
+			glg.Print("Stop all services")
+			_ = stopCommand.Validate("-all")
+			err := stopCommand.Exec()
+			if err != nil {
+				glg.Error(err)
+			}
+			glg.Print("Terminate")
+			os.Exit(int(sig.(syscall.Signal)))
+		}()
 	}
 }
 

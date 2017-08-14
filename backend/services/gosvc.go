@@ -36,12 +36,12 @@ func (svc *goService) Prepare() error {
 	svc.isRunning = true
 	err := svc.prepare()
 	if err != nil {
-		svc.isRunning = false
+		svc.cleanService()
 		return fmt.Errorf("prepare error: %v", err)
 	}
 	err = svc.logInit()
 	if err != nil {
-		svc.isRunning = false
+		svc.cleanService()
 		return fmt.Errorf("can't init logs: %v", err)
 	}
 	fmt.Fprintln(svc.logs, svc.Name(), "preparing...")
@@ -56,10 +56,12 @@ func (svc *goService) Build() error {
 	buildCmd.Dir = filepath.Join(svc.info.Dir, svc.info.Name)
 	err := buildCmd.Start()
 	if err != nil {
+		svc.cleanService()
 		return fmt.Errorf("can't start build: %v", err)
 	}
 	err = buildCmd.Wait()
 	if err != nil {
+		svc.cleanService()
 		return fmt.Errorf("can't finish build: %v", err)
 	}
 	return nil

@@ -7,6 +7,7 @@ import (
 	"github.com/gosuri/uitable"
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend/services"
+	"sort"
 )
 
 type PSCommand struct {
@@ -26,13 +27,31 @@ func (c *PSCommand) Exec() error {
 	return nil
 }
 
+type serviceInfoSlice struct {
+	data []services.ServiceInfo
+}
+
+func (s *serviceInfoSlice) Len() int {
+	return len(s.data)
+}
+
+func (s *serviceInfoSlice) Less(i, j int) bool {
+	return s.data[i].Name < s.data[j].Name
+}
+
+func (s *serviceInfoSlice) Swap(i, j int) {
+	s.data[i], s.data[j] = s.data[j], s.data[i]
+}
+
 func printServices(allFlag bool) string {
+	slice := serviceInfoSlice{<-services.ServeServicesInfo(allFlag)}
+	sort.Sort(&slice)
 	table := uitable.New()
 	table.MaxColWidth = 60
 	table.Wrap = true
 	table.AddRow("#", glg.White("Service"), "Status")
 	now := time.Now()
-	for i, info := range <-services.ServeServicesInfo(allFlag) {
+	for i, info := range slice.data {
 		upFor := time.Duration(0)
 		if !info.StartupTime.IsZero() {
 			upFor = now.Sub(info.StartupTime)
