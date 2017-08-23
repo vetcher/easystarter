@@ -16,6 +16,9 @@ type CfgCommand struct {
 }
 
 func (c *CfgCommand) Validate(args ...string) error {
+	c.reloadFlag = false
+	c.allFlag = false
+	c.svcNames = []string{}
 	if len(args) > 0 {
 		c.reloadFlag = util.StrInStrs(RELOAD, args)
 		c.allFlag = util.StrInStrs(ALL, args)

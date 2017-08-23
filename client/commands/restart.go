@@ -12,6 +12,8 @@ type RestartCommand struct {
 }
 
 func (c *RestartCommand) Validate(args ...string) error {
+	c.allFlag = false
+	c.args = []string{}
 	if len(args) > 0 {
 		c.allFlag = util.StrInStrs(ALL, args)
 		if c.allFlag {
