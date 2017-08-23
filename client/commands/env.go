@@ -30,6 +30,6 @@ func (c *EnvCommand) Exec() error {
 		}
 		glg.Info("Environment was reloaded.")
 	}
-	glg.Info(services.ServeGetEnv(c.allFlag))
+	glg.Infof("%v", <-services.ServeGetEnv(c.allFlag))
 	return nil
 }
