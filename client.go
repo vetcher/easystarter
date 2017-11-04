@@ -18,13 +18,13 @@ import (
 // TODO: add cleaning command
 
 const (
-	VERSION          = "0.6"
+	VERSION          = "0.6.x"
 	WelcomeTip       = "Easy Starter " + VERSION
 	MKDIR_PERMISSION = 0777
 
-	CMD_START   = "start"
-	CMD_STOP    = "stop"
-	CMD_RESTART = "restart"
+	CMD_START   = "+"
+	CMD_STOP    = "-"
+	CMD_RESTART = "="
 	CMD_PS      = "ps"
 	CMD_ENV     = "env"
 	CMD_EXIT    = "exit"

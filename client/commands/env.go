@@ -30,7 +30,7 @@ func (c *EnvCommand) Exec() error {
 	if c.reloadFlag {
 		err := <-services.ServeReloadEnv()
 		if err != nil {
-			return fmt.Errorf("Can't load environment: %v", err)
+			return fmt.Errorf("can't load environment: %v", err)
 		}
 		glg.Info("Environment was reloaded.")
 	}

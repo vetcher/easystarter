@@ -87,7 +87,7 @@ func (svc *goService) Start() error {
 }
 
 func (svc *goService) logInit() error {
-	out, err := os.OpenFile(filepath.Join(util.StartupDir(), "logs", fmt.Sprintf("%s.log", svc.info.Name)), os.O_APPEND|os.O_WRONLY, 0600)
+	out, err := os.OpenFile(filepath.Join(util.StartupDir(), "logs", fmt.Sprintf("%s.log", svc.info.Name)), os.O_WRONLY|os.O_CREATE, 0600)
 	// Init log file and all output would write to file
 	// If init unsuccessful out will be written to Stdout and Stderr
 	if err != nil {

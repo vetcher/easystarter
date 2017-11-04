@@ -12,5 +12,5 @@ func (c *ExitCommand) Validate(args ...string) error {
 }
 
 func (c *ExitCommand) Exec() error {
-	return errors.New("Exit")
+	return errors.New("exit")
 }

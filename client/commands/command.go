@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	ALL    string = "-all"
-	RELOAD string = "-reload"
+	ALL    = "-all"
+	RELOAD = "-reload"
 )
 
 var AtLeastOneArgumentErr = errors.New("at least one argument should be specified")

@@ -39,7 +39,7 @@ type LogsCommand struct {
 
 func (c *LogsCommand) Validate(args ...string) error {
 	if len(args) > 0 {
-		c.svcName = args[0]
+		c.svcName = CompleteNames(args)[0]
 		return nil
 	}
 	return AtLeastOneArgumentErr
