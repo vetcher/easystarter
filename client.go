@@ -22,16 +22,19 @@ const (
 	WelcomeTip       = "Easy Starter " + VERSION
 	MKDIR_PERMISSION = 0777
 
-	CMD_START   = "+"
-	CMD_STOP    = "-"
-	CMD_RESTART = "="
-	CMD_PS      = "ps"
-	CMD_ENV     = "env"
-	CMD_EXIT    = "exit"
-	CMD_VERSION = "version"
-	CMD_KILL    = "kill"
-	CMD_LOGS    = "logs"
-	CMD_CFG     = "cfg"
+	CMD_START_X   = "+"
+	CMD_START     = "start"
+	CMD_STOP_X    = "-"
+	CMD_STOP      = "stop"
+	CMD_RESTART_X = "="
+	CMD_RESTART   = "restart"
+	CMD_PS        = "ps"
+	CMD_ENV       = "env"
+	CMD_EXIT      = "exit"
+	CMD_VERSION   = "version"
+	CMD_KILL      = "kill"
+	CMD_LOGS      = "logs"
+	CMD_CFG       = "cfg"
 
 	EXIT_CODE_SETUP_ENV_ERR = 1 + iota
 	EXIT_CODE_INIT_LOGS_DIR_ERR
@@ -80,18 +83,42 @@ func handleSignals(stopCommand commands.Command) {
 }
 
 func main() {
+	start,
+		stop,
+		ps,
+		env,
+		restart,
+		version,
+		exit,
+		empty,
+		kill,
+		logs,
+		cfg := &commands.StartCommand{},
+		&commands.StopCommand{},
+		&commands.PSCommand{},
+		&commands.EnvCommand{},
+		&commands.RestartCommand{},
+		&commands.VersionCommand{VERSION},
+		&commands.ExitCommand{},
+		&commands.EmptyCommand{},
+		&commands.KillCommand{},
+		&commands.LogsCommand{},
+		&commands.CfgCommand{}
 	allCommands := map[string]commands.Command{
-		CMD_START:   &commands.StartCommand{},
-		CMD_STOP:    &commands.StopCommand{},
-		CMD_PS:      &commands.PSCommand{},
-		CMD_ENV:     &commands.EnvCommand{},
-		CMD_RESTART: &commands.RestartCommand{},
-		CMD_VERSION: &commands.VersionCommand{VERSION},
-		CMD_EXIT:    &commands.ExitCommand{},
-		"":          &commands.EmptyCommand{},
-		CMD_KILL:    &commands.KillCommand{},
-		CMD_LOGS:    &commands.LogsCommand{},
-		CMD_CFG:     &commands.CfgCommand{},
+		CMD_START:     start,
+		CMD_START_X:   start,
+		CMD_STOP:      stop,
+		CMD_STOP_X:    stop,
+		CMD_PS:        ps,
+		CMD_ENV:       env,
+		CMD_RESTART:   restart,
+		CMD_RESTART_X: restart,
+		CMD_VERSION:   version,
+		CMD_EXIT:      exit,
+		"":            empty,
+		CMD_KILL:      kill,
+		CMD_LOGS:      logs,
+		CMD_CFG:       cfg,
 	}
 	flag.Parse()
 	go handleSignals(allCommands[CMD_STOP])
