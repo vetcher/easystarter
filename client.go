@@ -18,7 +18,7 @@ import (
 // TODO: add cleaning command
 
 const (
-	VERSION          = "0.6.x"
+	VERSION          = "0.7.x"
 	WelcomeTip       = "Easy Starter " + VERSION
 	MKDIR_PERMISSION = 0777
 

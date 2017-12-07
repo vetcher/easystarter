@@ -8,6 +8,7 @@ import (
 	"github.com/kpango/glg"
 	"github.com/vetcher/easystarter/backend/services"
 	"sort"
+	"strings"
 )
 
 type PSCommand struct {
@@ -49,14 +50,14 @@ func printServices(allFlag bool) string {
 	table := uitable.New()
 	table.MaxColWidth = 60
 	table.Wrap = true
-	table.AddRow("#", glg.White("Service"), "Status")
+	table.AddRow("#", glg.White("Service"), "Status", "Arguments")
 	now := time.Now()
 	for i, info := range slice.data {
 		upFor := time.Duration(0)
 		if !info.StartupTime.IsZero() {
 			upFor = now.Sub(info.StartupTime)
 		}
-		table.AddRow(i+1, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()))
+		table.AddRow(i+1, info.Name, fmt.Sprintf("%s %.0fs", info.Status, upFor.Seconds()), strings.Join(info.Args, " "))
 	}
 
 	return fmt.Sprintf("In configuration %v services\n%v",
